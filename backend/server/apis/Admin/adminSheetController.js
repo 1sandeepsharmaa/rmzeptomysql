@@ -32,7 +32,7 @@ const exportExpenseCSV = async (req, res) => {
           include: [
             { model: State, as: 'state', attributes: ['stateName'] },
             { model: Zone, as: 'zone', attributes: ['zoneName'] },
-            { model: StoreCategory, as: 'storeCategory', attributes: ['categoryName'] }
+            { model: StoreCategory, as: 'storeCategory', attributes: ['name'] }
           ]
         }
       ]
@@ -52,7 +52,7 @@ const exportExpenseCSV = async (req, res) => {
         store_name: data.store?.storeName || "",
         store_code: data.store?.storeCode || "",
         zone: data.store?.zone?.zoneName || "",
-        store_category: data.store?.storeCategory?.categoryName || "",
+        store_category: data.store?.storeCategory?.name || "",
         expense_head: data.expenseHead?.name || "",
         expense_type: data.natureOfExpense || "",
         expense_value: data.amount || "",
