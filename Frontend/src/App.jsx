@@ -76,7 +76,7 @@ import AllPendingExpense from "./Components/Admin/Expenses/AllPendingExpense"
 import AllApprovedExpense from "./Components/Admin/Expenses/AllApprovedExpense"
 import AllHoldExpense from "./Components/Admin/Expenses/AllHoldExpense"
 import AllRjectedExpense from "./Components/Admin/Expenses/AllRjectedExpense"
-import ManageZonalHead from "./Components/Zonal_Head/manageZonalHead"
+import ManageZonalHead from "./Components/Zonal_Head/ManageZonalHead"
 import ManageCLM from "./Components/CLM/ManageCLM"
 import ManageFM from "./Components/FM/ManageFM"
 import PRPOMaster from "./layout/PR_PO/PRPOMaster"
@@ -224,7 +224,7 @@ function App() {
             <Route path="/BusinessFinance/holdExpenses" element={<BfHoldExpense />} />
             <Route path="/BusinessFinance/pendingExpenses" element={<BfPendingExpense />} />
             <Route path="/BusinessFinance/rejectedExpenses" element={<BfRejectedExpense />} />
-             <Route path="/BusinessFinance/bfprofile" element={<BFProfile/>} />
+            <Route path="/BusinessFinance/bfprofile" element={<BFProfile />} />
           </Route>
           <Route path="/Procurement" element={<ProcureMaster />}>
             <Route path="/Procurement" element={<ProcurementDashboard />} />
@@ -232,7 +232,7 @@ function App() {
             <Route path="/Procurement/holdExpenses" element={<ProcureHoldExpenses />} />
             <Route path="/Procurement/pendingExpenses" element={<ProcurePendingExpense />} />
             <Route path="/Procurement/rejectedExpenses" element={<ProcureRejectedExpenses />} />
-             <Route path="/Procurement/procurementprofile" element={<ProcurementProfile/>} />
+            <Route path="/Procurement/procurementprofile" element={<ProcurementProfile />} />
           </Route>
           <Route path="/PR_PO" element={<PRPOMaster />}>
             <Route path="/PR_PO" element={<PrPoDashboard />} />
@@ -241,7 +241,7 @@ function App() {
             <Route path="/PR_PO/approvedExpenses" element={<PrPoApprovedExpense />} />
             <Route path="/PR_PO/rejectedExpenses" element={<PrPoRejectedExpense />} />
             <Route path="/PR_PO/closedExpenses" element={<PrPoClosedExpense />} />
-             <Route path="/PR_PO/prprprofile" element={<PrPoProfile/>} />
+            <Route path="/PR_PO/prprprofile" element={<PrPoProfile />} />
 
           </Route>
 
@@ -249,7 +249,7 @@ function App() {
             <Route path="/ZonalCommercial" element={<ZcDashboard />} />
             <Route path="/ZonalCommercial/pendingTickets" element={<ZcPendingTickets />} />
             <Route path="/ZonalCommercial/approvedTickets" element={<ZcApprovedTickets />} />
-            <Route path="/ZonalCommercial/zcprofile" element={<ZonalCommercialProfile/>} />
+            <Route path="/ZonalCommercial/zcprofile" element={<ZonalCommercialProfile />} />
 
           </Route>
 

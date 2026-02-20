@@ -5,6 +5,7 @@ const Store = require("../Store/storeModel");
 const State = require("../State/stateModel");
 const Zone = require("../Zone/zoneModel");
 const StoreCategory = require("../Store Category/storeCategoryModel");
+const ZonalHead = require("../Zonal Head/zonalHeadModel");
 const ExpenseApproval = require("../Expense Approval/expenseApprovalModel");
 const { Parser } = require("json2csv");
 const { Op } = require("sequelize");
@@ -25,7 +26,7 @@ const exportExpenseCSV = async (req, res) => {
     const expenses = await Expense.findAll({
       order: [['createdAt', 'DESC']],
       include: [
-        { model: User, as: 'user', attributes: ['name'] },
+        { model: User, as: 'user', attributes: ['name', 'email', 'designation'] },
         { model: ExpenseHead, as: 'expenseHead', attributes: ['name'] },
         { model: ExpenseApproval, as: 'approvals' },
         {
@@ -41,9 +42,10 @@ const exportExpenseCSV = async (req, res) => {
       ]
     });
 
-    if (!expenses || expenses.length === 0) {
-      return res.status(200).send("No expense data found");
-    }
+    const [allUsers, allZonalHeads] = await Promise.all([
+      User.findAll({ attributes: ['id', 'name', 'email', 'designation'] }),
+      ZonalHead.findAll({ attributes: ['userId', 'name', 'email', 'zoneId', 'designation'] })
+    ]);
 
     const formatted = expenses.map((e) => {
       const data = e.toJSON();
@@ -62,9 +64,52 @@ const exportExpenseCSV = async (req, res) => {
       const zc = getApproval("ZONALCOMMERCIAL");
       const fm = getApproval("FM");
 
+      // Resolve Pending With
+      let pendingWithName = "";
+      let pendingWithEmail = "";
+      let pendingWithPos = data.currentApprovalLevel || "";
+
+      if (data.currentStatus === "Pending" && data.currentApprovalLevel) {
+        const levelNorm = data.currentApprovalLevel.toUpperCase().replace(/[\s\/\_]+/g, "");
+
+        if (levelNorm === "ZONALHEAD") {
+          const targetZH = allZonalHeads.find(z => z.zoneId === data.store?.zoneId);
+          if (targetZH) {
+            pendingWithName = targetZH.name;
+            pendingWithEmail = targetZH.email;
+          }
+        } else if (levelNorm === "FM") {
+          pendingWithName = data.user?.name || "";
+          pendingWithEmail = data.user?.email || "";
+        } else if (["CLM", "BUSINESSFINANCE", "PROCUREMENT", "PRPO", "ZONALCOMMERCIAL"].includes(levelNorm)) {
+          const matches = allUsers.filter(u => u.designation?.toUpperCase().replace(/[\s\/\_]+/g, "") === levelNorm);
+          pendingWithName = matches.map(m => m.name).join(" | ");
+          pendingWithEmail = matches.map(m => m.email).join(" | ");
+        }
+      }
+
+      // Resolve Hold Details
+      let heldByName = "";
+      let heldByEmail = "";
+      let heldAtLevel = data.heldFromLevel || "";
+
+      if (data.currentStatus === "Hold" && Array.isArray(data.holdHistory) && data.holdHistory.length > 0) {
+        const lastHold = data.holdHistory[data.holdHistory.length - 1];
+        const holder = allUsers.find(u => u.id === lastHold.heldBy);
+        if (holder) {
+          heldByName = holder.name;
+          heldByEmail = holder.email;
+        }
+      }
+
       return {
         timestamp: data.createdAt ? new Date(data.createdAt).toLocaleString() : "",
         submitted_by: data.user?.name || "",
+        submitted_by_email: data.user?.email || "",
+        submitted_by_pos: data.user?.designation || "",
+        pending_with_name: pendingWithName,
+        pending_with_email: pendingWithEmail,
+        pending_with_pos: pendingWithPos,
         state: data.store?.state?.stateName || "",
         city: data.store?.cityName || "",
         store_name: data.store?.storeName || "",
@@ -83,6 +128,9 @@ const exportExpenseCSV = async (req, res) => {
           ? data.attachment.join(" | ")
           : data.attachment || "",
         status: data.currentStatus || "",
+        hold_by: heldByName,
+        hold_by_email: heldByEmail,
+        hold_at_level: heldAtLevel,
         hold_remark: data.holdComment || "",
         zh_comment: zh.comment || "",
         zh_time: zh.actionAt ? new Date(zh.actionAt).toLocaleString() : "",

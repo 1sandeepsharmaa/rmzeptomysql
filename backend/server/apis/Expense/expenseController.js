@@ -1,6 +1,11 @@
 const expenseModel = require("./expenseModel");
 const approvalPolicyModel = require("../Approval Policy/approvalPolicyModel");
 const userModel = require("../User/userModel");
+const storeModel = require("../Store/storeModel");
+const expenseHeadModel = require("../ExpenseHead/expenseHeadModel");
+const stateModel = require("../State/stateModel");
+const zoneModel = require("../Zone/zoneModel");
+const storeCategoryModel = require("../Store Category/storeCategoryModel");
 const { Op } = require("sequelize");
 
 // Mock sendNotification if not defined in the file (original code referenced it but it wasn't defined in the snippet)
@@ -214,13 +219,32 @@ const add = (req, res) => {
 const getAll = (req, res) => {
     expenseModel.findAll({
         where: req.body,
-        // include would go here
+        include: [
+            { model: userModel, as: 'user', attributes: ['name', 'email'] },
+            { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
+            {
+                model: storeModel,
+                as: 'store',
+                include: [
+                    { model: stateModel, as: 'state', attributes: ['stateName'] },
+                    { model: zoneModel, as: 'zone', attributes: ['zoneName'] },
+                    { model: storeCategoryModel, as: 'storeCategory', attributes: ['name'] }
+                ]
+            }
+        ],
         order: [['createdAt', 'DESC']]
     })
         .then(expenses => {
+            const populated = expenses.map(e => {
+                const json = e.toJSON();
+                // Map association objects back to ID keys for frontend compatibility
+                json.storeId = json.store;
+                json.expenseHeadId = json.expenseHead;
+                return json;
+            });
             res.send({
                 success: true,
-                data: expenses
+                data: populated
             });
         })
         .catch(err => {
@@ -247,7 +271,20 @@ const getSingle = (req, res) => {
         where: {
             id: id,
             status: true
-        }
+        },
+        include: [
+            { model: userModel, as: 'user', attributes: ['name', 'email'] },
+            { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
+            {
+                model: storeModel,
+                as: 'store',
+                include: [
+                    { model: stateModel, as: 'state', attributes: ['stateName'] },
+                    { model: zoneModel, as: 'zone', attributes: ['zoneName'] },
+                    { model: storeCategoryModel, as: 'storeCategory', attributes: ['name'] }
+                ]
+            }
+        ]
     })
         .then(data => {
             if (!data) {
@@ -257,11 +294,15 @@ const getSingle = (req, res) => {
                     message: "Expense not Found"
                 });
             } else {
+                const json = data.toJSON();
+                // Map association objects back to ID keys for frontend compatibility
+                json.storeId = json.store;
+                json.expenseHeadId = json.expenseHead;
                 res.send({
                     status: 200,
                     success: true,
                     message: "Expense Found",
-                    data
+                    data: json
                 });
             }
         })
@@ -329,14 +370,34 @@ const myExpenses = (req, res) => {
 
     expenseModel.findAll({
         where: filter,
+        include: [
+            { model: userModel, as: 'user', attributes: ['name', 'email'] },
+            { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
+            {
+                model: storeModel,
+                as: 'store',
+                include: [
+                    { model: stateModel, as: 'state', attributes: ['stateName'] },
+                    { model: zoneModel, as: 'zone', attributes: ['zoneName'] },
+                    { model: storeCategoryModel, as: 'storeCategory', attributes: ['name'] }
+                ]
+            }
+        ],
         order: [['createdAt', 'DESC']]
     })
         .then((data) => {
+            const populated = data.map(e => {
+                const json = e.toJSON();
+                // Map association objects back to ID keys for frontend compatibility
+                json.storeId = json.store;
+                json.expenseHeadId = json.expenseHead;
+                return json;
+            });
             res.send({
                 status: 200,
                 success: true,
                 message: "My Expense List",
-                data,
+                data: populated,
             });
         })
         .catch((err) => {

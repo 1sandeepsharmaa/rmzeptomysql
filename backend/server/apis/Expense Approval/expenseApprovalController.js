@@ -5,6 +5,9 @@ const userModel = require("../User/userModel");
 const storeModel = require("../Store/storeModel");
 const zhModel = require("../Zonal Head/zonalHeadModel");
 const expenseHeadModel = require("../ExpenseHead/expenseHeadModel");
+const stateModel = require("../State/stateModel");
+const zoneModel = require("../Zone/zoneModel");
+const storeCategoryModel = require("../Store Category/storeCategoryModel");
 const { Op } = require("sequelize");
 
 /* ================= APPROVE EXPENSE ================= */
@@ -450,12 +453,37 @@ const clmPendingExpenses = async (req, res) => {
                 currentStatus: "Pending",
                 currentApprovalLevel: "CLM",
                 status: true
-            }
+            },
+            include: [
+                { model: userModel, as: 'user', attributes: ['name', 'email'] },
+                { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
+                {
+                    model: storeModel,
+                    as: 'store',
+                    include: [
+                        { model: stateModel, as: 'state', attributes: ['stateName'] },
+                        { model: zoneModel, as: 'zone', attributes: ['zoneName'] },
+                        { model: storeCategoryModel, as: 'storeCategory', attributes: ['name'] }
+                    ]
+                }
+            ],
+            order: [['createdAt', 'DESC']]
         });
+
+        const populated = await Promise.all(expenses.map(async e => {
+            const json = e.toJSON();
+            json.storeId = json.store;
+            json.expenseHeadId = json.expenseHead;
+            if (json.raisedBy) {
+                const raiser = await userModel.findOne({ where: { id: json.raisedBy }, attributes: ['id', 'name', 'email', 'designation'] });
+                json.raisedBy = raiser ? raiser.toJSON() : json.raisedBy;
+            }
+            return json;
+        }));
 
         return res.send({
             success: true,
-            data: expenses
+            data: populated
         });
 
     } catch (err) {
@@ -496,24 +524,41 @@ const pendingForZH = async (req, res) => {
                 currentStatus: "Pending",
                 status: true
             },
+            include: [
+                { model: userModel, as: 'user', attributes: ['name', 'email'] },
+                { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
+                {
+                    model: storeModel,
+                    as: 'store',
+                    include: [
+                        { model: stateModel, as: 'state', attributes: ['stateName'] },
+                        { model: zoneModel, as: 'zone', attributes: ['zoneName'] },
+                        { model: storeCategoryModel, as: 'storeCategory', attributes: ['name'] }
+                    ]
+                }
+            ],
             order: [['createdAt', 'DESC']]
         });
 
-        // Manual population for frontend compatibility
-        const populatedExpenses = [];
-        for (const exp of expenses) {
-            const expJson = exp.toJSON();
-            const store = await storeModel.findOne({ where: { id: exp.storeId } });
-            const head = await expenseHeadModel.findOne({ where: { id: exp.expenseHeadId } });
-            expJson.storeId = store;
-            expJson.expenseHeadId = head;
-            populatedExpenses.push(expJson);
-        }
+        const populated = await Promise.all(expenses.map(async e => {
+            const json = e.toJSON();
+            json.storeId = json.store;
+            json.expenseHeadId = json.expenseHead;
+            // Populate the raiser user so ExpenseTimeline can show their name
+            if (json.raisedBy) {
+                const raiser = await userModel.findOne({
+                    where: { id: json.raisedBy },
+                    attributes: ['id', 'name', 'email', 'designation']
+                });
+                json.raisedBy = raiser ? raiser.toJSON() : json.raisedBy;
+            }
+            return json;
+        }));
 
         return res.send({
             success: true,
             message: "Zonal Head Pending Expenses",
-            data: populatedExpenses
+            data: populated
         });
 
     } catch (err) {
@@ -546,14 +591,38 @@ const pendingForBF = async (req, res) => {
 
         const expenses = await expenseModel.findAll({
             where,
+            include: [
+                { model: userModel, as: 'user', attributes: ['name', 'email'] },
+                { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
+                {
+                    model: storeModel,
+                    as: 'store',
+                    include: [
+                        { model: stateModel, as: 'state', attributes: ['stateName'] },
+                        { model: zoneModel, as: 'zone', attributes: ['zoneName'] },
+                        { model: storeCategoryModel, as: 'storeCategory', attributes: ['name'] }
+                    ]
+                }
+            ],
             order: [['createdAt', 'DESC']]
         });
+
+        const populated = await Promise.all(expenses.map(async e => {
+            const json = e.toJSON();
+            json.storeId = json.store;
+            json.expenseHeadId = json.expenseHead;
+            if (json.raisedBy) {
+                const raiser = await userModel.findOne({ where: { id: json.raisedBy }, attributes: ['id', 'name', 'email', 'designation'] });
+                json.raisedBy = raiser ? raiser.toJSON() : json.raisedBy;
+            }
+            return json;
+        }));
 
         return res.send({
             status: 200,
             success: true,
             message: "BF Pending Expenses",
-            data: expenses
+            data: populated
         });
 
     } catch (err) {
@@ -586,14 +655,38 @@ const pendingForProcurement = async (req, res) => {
 
         const expenses = await expenseModel.findAll({
             where,
+            include: [
+                { model: userModel, as: 'user', attributes: ['name', 'email'] },
+                { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
+                {
+                    model: storeModel,
+                    as: 'store',
+                    include: [
+                        { model: stateModel, as: 'state', attributes: ['stateName'] },
+                        { model: zoneModel, as: 'zone', attributes: ['zoneName'] },
+                        { model: storeCategoryModel, as: 'storeCategory', attributes: ['name'] }
+                    ]
+                }
+            ],
             order: [['createdAt', 'DESC']]
         });
+
+        const populated = await Promise.all(expenses.map(async e => {
+            const json = e.toJSON();
+            json.storeId = json.store;
+            json.expenseHeadId = json.expenseHead;
+            if (json.raisedBy) {
+                const raiser = await userModel.findOne({ where: { id: json.raisedBy }, attributes: ['id', 'name', 'email', 'designation'] });
+                json.raisedBy = raiser ? raiser.toJSON() : json.raisedBy;
+            }
+            return json;
+        }));
 
         return res.send({
             status: 200,
             success: true,
             message: "Procurement Pending Expenses",
-            data: expenses
+            data: populated
         });
 
     } catch (err) {
@@ -613,13 +706,37 @@ const prpoPendingExpenses = async (req, res) => {
                 currentApprovalLevel: "PR/PO",
                 currentStatus: "Pending",
             },
+            include: [
+                { model: userModel, as: 'user', attributes: ['name', 'email'] },
+                { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
+                {
+                    model: storeModel,
+                    as: 'store',
+                    include: [
+                        { model: stateModel, as: 'state', attributes: ['stateName'] },
+                        { model: zoneModel, as: 'zone', attributes: ['zoneName'] },
+                        { model: storeCategoryModel, as: 'storeCategory', attributes: ['name'] }
+                    ]
+                }
+            ],
             order: [['createdAt', 'DESC']]
         });
+
+        const populated = await Promise.all(expenses.map(async e => {
+            const json = e.toJSON();
+            json.storeId = json.store;
+            json.expenseHeadId = json.expenseHead;
+            if (json.raisedBy) {
+                const raiser = await userModel.findOne({ where: { id: json.raisedBy }, attributes: ['id', 'name', 'email', 'designation'] });
+                json.raisedBy = raiser ? raiser.toJSON() : json.raisedBy;
+            }
+            return json;
+        }));
 
         return res.send({
             success: true,
             message: "PR/PO pending expenses fetched successfully",
-            data: expenses,
+            data: populated,
         });
     } catch (error) {
         console.error("PR/PO Pending Expense Error:", error);
@@ -711,15 +828,37 @@ const myApprovalActions = async (req, res) => {
                 seenIds.add(item.expenseId);
 
                 const itemJson = item.toJSON();
-                const expense = await expenseModel.findOne({ where: { id: item.expenseId } });
+                const expense = await expenseModel.findOne({
+                    where: { id: item.expenseId },
+                    include: [
+                        { model: userModel, as: 'user', attributes: ['name', 'email'] },
+                        { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
+                        {
+                            model: storeModel,
+                            as: 'store',
+                            include: [
+                                { model: stateModel, as: 'state', attributes: ['stateName'] },
+                                { model: zoneModel, as: 'zone', attributes: ['zoneName'] },
+                                { model: storeCategoryModel, as: 'storeCategory', attributes: ['name'] }
+                            ]
+                        }
+                    ]
+                });
 
                 if (expense) {
-                    const expJson = expense.toJSON();
-                    const store = await storeModel.findOne({ where: { id: expense.storeId } });
-                    const head = await expenseHeadModel.findOne({ where: { id: expense.expenseHeadId } });
-                    expJson.storeId = store;
-                    expJson.expenseHeadId = head;
-                    itemJson.expenseId = expJson;
+                    const json = expense.toJSON();
+                    // Map association objects to ID keys for frontend compatibility
+                    json.storeId = json.store;
+                    json.expenseHeadId = json.expenseHead;
+                    // Populate the raiser user so ExpenseTimeline can show their name
+                    if (json.raisedBy) {
+                        const raiser = await userModel.findOne({
+                            where: { id: json.raisedBy },
+                            attributes: ['id', 'name', 'email', 'designation']
+                        });
+                        json.raisedBy = raiser ? raiser.toJSON() : json.raisedBy;
+                    }
+                    itemJson.expenseId = json;
                     uniqueItems.push(itemJson);
                 }
             }
@@ -745,16 +884,35 @@ const adminExpensesByStatus = async (req, res) => {
 
         const expenses = await expenseModel.findAll({
             where: { currentStatus: status },
+            include: [
+                { model: userModel, as: 'user', attributes: ['name', 'email'] },
+                { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
+                {
+                    model: storeModel,
+                    as: 'store',
+                    include: [
+                        { model: stateModel, as: 'state', attributes: ['stateName'] },
+                        { model: zoneModel, as: 'zone', attributes: ['zoneName'] },
+                        { model: storeCategoryModel, as: 'storeCategory', attributes: ['name'] }
+                    ]
+                }
+            ],
             order: [['createdAt', 'DESC']]
+        });
+
+        const populated = expenses.map(e => {
+            const json = e.toJSON();
+            json.storeId = json.store;
+            json.expenseHeadId = json.expenseHead;
+            return json;
         });
 
         // Add additional data if Rejected or Closed (Sequelize version)
         const updatedExpenses = await Promise.all(
-            expenses.map(async (exp) => {
-                const expJson = exp.toJSON();
+            populated.map(async (expJson) => {
                 if (status === "Rejected") {
                     const lastReject = await expenseApprovalModel.findOne({
-                        where: { expenseId: exp.id, action: "Rejected" },
+                        where: { expenseId: expJson.id, action: "Rejected" },
                         order: [['actionAt', 'DESC']]
                     });
                     if (lastReject) {
@@ -765,14 +923,14 @@ const adminExpensesByStatus = async (req, res) => {
                 }
                 if (status === "Closed") {
                     const lastClose = await expenseApprovalModel.findOne({
-                        where: { expenseId: exp.id, action: "Closed" },
+                        where: { expenseId: expJson.id, action: "Closed" },
                         order: [['actionAt', 'DESC']]
                     });
                     if (lastClose) {
                         expJson.closedOn = lastClose.actionAt;
                     }
                 }
-                expJson.currentAt = exp.currentApprovalLevel;
+                expJson.currentAt = expJson.currentApprovalLevel;
                 return expJson;
             })
         );
@@ -932,10 +1090,30 @@ const zonalCommercialPending = async (req, res) => {
                 postApprovalStage: "ZC_VERIFY",
                 status: true
             },
+            include: [
+                { model: userModel, as: 'user', attributes: ['name', 'email'] },
+                { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
+                {
+                    model: storeModel,
+                    as: 'store',
+                    include: [
+                        { model: stateModel, as: 'state', attributes: ['stateName'] },
+                        { model: zoneModel, as: 'zone', attributes: ['zoneName'] },
+                        { model: storeCategoryModel, as: 'storeCategory', attributes: ['name'] }
+                    ]
+                }
+            ],
             order: [['createdAt', 'DESC']]
         });
 
-        return res.send({ success: true, data });
+        const populated = data.map(e => {
+            const json = e.toJSON();
+            json.storeId = json.store;
+            json.expenseHeadId = json.expenseHead;
+            return json;
+        });
+
+        return res.send({ success: true, data: populated });
 
     } catch (err) {
         console.error("ZC Pending Error:", err);

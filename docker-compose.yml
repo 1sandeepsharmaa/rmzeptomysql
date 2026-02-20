@@ -1,0 +1,113 @@
+# ═══════════════════════════════════════════════════════════════
+#  RM Tool – Docker Compose
+#  Services: mysql | backend | frontend | backup
+#  Run: docker compose up --build -d
+# ═══════════════════════════════════════════════════════════════
+
+services:
+
+  # ──────────────────────────────────────────
+  # 1. MySQL Database
+  # ──────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: rm_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASS}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASS}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - mysql_backups:/backups
+    networks:
+      - rm_network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_PASS}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ──────────────────────────────────────────
+  # 2. Node.js Backend
+  # ──────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rm_backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: mysql
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_DIALECT: mysql
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3000
+    ports:
+      - "3001:3000"
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - rm_network
+
+  # ──────────────────────────────────────────
+  # 3. React + Vite Frontend (nginx)
+  # ──────────────────────────────────────────
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: rm_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - rm_network
+
+  # ──────────────────────────────────────────
+  # 4. Auto Backup Service (every 24h)
+  # ──────────────────────────────────────────
+  backup:
+    image: mysql:8.0
+    container_name: rm_backup
+    restart: unless-stopped
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+    volumes:
+      - mysql_backups:/backups
+      - ./docker/backup.sh:/backup.sh
+    depends_on:
+      mysql:
+        condition: service_healthy
+    entrypoint: [ "/bin/sh", "/backup.sh" ]
+    networks:
+      - rm_network
+
+# ═══════════════════════════════════════════════════════════════
+# Named Volumes — data survives container removal
+# ═══════════════════════════════════════════════════════════════
+volumes:
+  mysql_data:
+    name: rm_mysql_data
+  mysql_backups:
+    name: rm_mysql_backups
+  uploads_data:
+    name: rm_uploads_data
+
+# ═══════════════════════════════════════════════════════════════
+# Network
+# ═══════════════════════════════════════════════════════════════
+networks:
+  rm_network:
+    driver: bridge

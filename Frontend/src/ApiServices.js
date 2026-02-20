@@ -1,5 +1,6 @@
 import axios from "axios";
-var BaseURL = "http://localhost:3000"
+var BaseURL = import.meta.env.VITE_API_URL ?? "http://localhost:3000"
+
 const getToken = () => ({
    authorization: sessionStorage.getItem("token")
 })
