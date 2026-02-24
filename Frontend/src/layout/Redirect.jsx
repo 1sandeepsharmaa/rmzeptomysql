@@ -9,7 +9,7 @@ export default function Redirect() {
         const userType = sessionStorage.getItem("userType");
 
         const routeMap = {
-            "1":"/admin",
+            "1": "/admin",
             "3": "/fm",
             "4": "/clm",
             "5": "/ZonalHead",
@@ -17,7 +17,8 @@ export default function Redirect() {
             "7": "/Procurement",
             "8": "/PR_PO",
             "9": "/ZonalCommercial",
-            "10": "/MissingBridge"
+            "10": "/MissingBridge",
+            "11": "/viewer"
         };
 
         if (!token) {
@@ -26,7 +27,7 @@ export default function Redirect() {
             nav(routeMap[userType] || "/");
         }
 
-    }, []);
+    }, [nav]);
 
-    return null; 
+    return null;
 }

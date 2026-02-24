@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken")
-const secret = "123@#"
+const secret = process.env.JWT_SECRET || "123@#"
 
-module.exports = (req, res,next) => {
+module.exports = (req, res, next) => {
     let token = req.headers["authorization"]
     if (!token) {
         res.send({
@@ -19,8 +19,8 @@ module.exports = (req, res,next) => {
                     message: "Inavlid token"
                 })
             }
-            else{
-                req.decoded=data
+            else {
+                req.decoded = data
                 next()
             }
         })

@@ -49,4 +49,15 @@ const Store = sequelize.define('Store', {
     toObject: { virtuals: true }
 });
 
+Store.associate = (models) => {
+    Store.belongsTo(models.StoreCategory, { foreignKey: 'storeCategoryId', as: 'storeCategoryData' });
+    Store.belongsTo(models.State, { foreignKey: 'stateId', as: 'stateData' });
+    Store.belongsTo(models.Zone, { foreignKey: 'zoneId', as: 'zoneData' });
+
+    // Support for legacy aliases used in adminSheetController
+    Store.belongsTo(models.State, { foreignKey: 'stateId', as: 'state' });
+    Store.belongsTo(models.Zone, { foreignKey: 'zoneId', as: 'zone' });
+    Store.belongsTo(models.StoreCategory, { foreignKey: 'storeCategoryId', as: 'storeCategory' });
+};
+
 module.exports = Store;

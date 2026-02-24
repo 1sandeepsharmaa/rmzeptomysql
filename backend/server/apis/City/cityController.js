@@ -47,7 +47,7 @@ const add = (req, res) => {
                                 status: 200,
                                 success: true,
                                 message: "City Added Successfully",
-                                data: savedCity
+                                data: savedCity.toJSON()
                             });
                         })
                         .catch((err) => {
@@ -79,10 +79,19 @@ const add = (req, res) => {
 };
 
 const getAll = (req, res) => {
-    // req.body used for filter
+    // Whitelist allowed filter fields
+    const body = req.body || {};
+    const allowedFilters = {};
+    if (body.stateId) allowedFilters.stateId = body.stateId;
+    if (body.zoneId) allowedFilters.zoneId = body.zoneId;
+    if (body.status !== undefined) allowedFilters.status = body.status;
+
     cityModel.findAll({
-        where: req.body
-        // include filters would go here if associations are defined
+        where: allowedFilters,
+        include: [
+            { model: require("../State/stateModel"), as: 'stateData' },
+            { model: require("../Zone/zoneModel"), as: 'zoneData' }
+        ]
     })
         .then((cityData) => {
             if (cityData.length == 0) {
@@ -140,7 +149,7 @@ const getSingle = (req, res) => {
                         status: 200,
                         success: true,
                         message: "City Found",
-                        data: cityData
+                        data: cityData.toJSON()
                     })
                 }
             })
@@ -223,7 +232,7 @@ const update = (req, res) => {
                                         status: 200,
                                         success: true,
                                         message: "City Updated Successfully",
-                                        data: updatedCity
+                                        data: updatedCity.toJSON()
                                     });
                                 })
                                 .catch((err) => {

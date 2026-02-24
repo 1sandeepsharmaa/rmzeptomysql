@@ -51,20 +51,29 @@ const add = (req, res) => {
                 });
             }
 
+            if (req.body.status !== undefined && typeof req.body.status !== "boolean") {
+                return res.send({
+                    status: 422,
+                    success: false,
+                    message: "status must be a boolean"
+                });
+            }
+
             const policyPayload = {
                 minAmount: minAmount,
                 maxAmount: maxAmount,
                 approvalLevels: req.body.approvalLevels, // JSON type in model
-                status: true
+                status: req.body.status !== undefined ? req.body.status : true
             };
 
             approvalPolicyModel.create(policyPayload)
                 .then(data => {
+                    const safeData = data.toJSON();
                     res.send({
                         status: 200,
                         success: true,
                         message: "Approval Policy Added Successfully",
-                        data
+                        data: safeData
                     });
                 })
                 .catch((err) => {
@@ -90,7 +99,9 @@ const add = (req, res) => {
 
 const getAll = (req, res) => {
 
-    approvalPolicyModel.findAll({})
+    approvalPolicyModel.findAll({
+        attributes: { exclude: ['createdAt', 'updatedAt'] }
+    })
         .then(data => {
             res.send({
                 status: 200,
@@ -119,7 +130,10 @@ const getSingle = (req, res) => {
         });
     }
 
-    approvalPolicyModel.findOne({ where: { id: id } })
+    approvalPolicyModel.findOne({
+        where: { id: id },
+        attributes: { exclude: ['createdAt', 'updatedAt'] }
+    })
         .then(data => {
             if (!data) {
                 res.send({
@@ -132,7 +146,7 @@ const getSingle = (req, res) => {
                     status: 200,
                     success: true,
                     message: "Approval Policy Found",
-                    data
+                    data: data.toJSON()
                 });
             }
         })
@@ -212,7 +226,16 @@ const update = (req, res) => {
 
                     if (req.body.minAmount !== undefined) policy.minAmount = req.body.minAmount;
                     if (req.body.maxAmount !== undefined) policy.maxAmount = req.body.maxAmount;
-                    if (req.body.approvalLevels) policy.approvalLevels = req.body.approvalLevels;
+                    if (req.body.approvalLevels) {
+                        if (!Array.isArray(req.body.approvalLevels)) {
+                            return res.send({
+                                status: 422,
+                                success: false,
+                                message: "approvalLevels must be an array"
+                            });
+                        }
+                        policy.approvalLevels = req.body.approvalLevels;
+                    }
 
                     policy.save()
                         .then(data => {
@@ -220,7 +243,7 @@ const update = (req, res) => {
                                 status: 200,
                                 success: true,
                                 message: "Approval Policy Updated Successfully",
-                                data
+                                data: data.toJSON()
                             });
                         })
                         .catch(() => {
@@ -316,6 +339,13 @@ const changeStatus = (req, res) => {
                 });
             }
 
+            if (req.body.status !== undefined && typeof req.body.status !== "boolean") {
+                return res.send({
+                    status: 422,
+                    success: false,
+                    message: "status must be a boolean"
+                });
+            }
             policy.status = req.body.status;
 
             policy.save()
@@ -324,7 +354,7 @@ const changeStatus = (req, res) => {
                         status: 200,
                         success: true,
                         message: "Approval Policy Status Updated Successfully",
-                        data
+                        data: data.toJSON()
                     });
                 })
                 .catch(() => {

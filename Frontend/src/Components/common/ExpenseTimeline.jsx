@@ -251,9 +251,15 @@ export default function ExpenseTimeline({ expense, approvalHistory }) {
 
     /* ================= RESUBMISSIONS ================= */
     (expense.resubmissions || []).forEach((resub) => {
+        const resubAttachments = Array.isArray(resub.attachment)
+            ? resub.attachment
+            : resub.attachment
+                ? [resub.attachment]
+                : [];
+
         timeline.push({
             type: "RESUBMITTED",
-            attachments: resub.attachment || [],
+            attachments: resubAttachments,
             comment: resub.fmComment,
             level: resub.heldFromLevel,
             date: resub.submittedAt,

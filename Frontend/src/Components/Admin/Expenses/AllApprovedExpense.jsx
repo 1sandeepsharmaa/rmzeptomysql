@@ -10,6 +10,7 @@ import { useLocation } from "react-router-dom";
 export default function AllApprovedExpenses() {
   const [data, setData] = useState([]);
   const [load, setLoad] = useState(true);
+  const isViewer = sessionStorage.getItem("userType") === "11";
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [approvalHistory, setApprovalHistory] = useState([]);
@@ -33,6 +34,7 @@ export default function AllApprovedExpenses() {
     year: queryParams.get("year"),
     state: queryParams.get("state"),
     zone: queryParams.get("zone"),
+    currentApprovalLevel: queryParams.get("currentApprovalLevel"),
   };
   /* ================= FETCH APPROVED ================= */
   const fetchApproved = () => {
@@ -41,31 +43,44 @@ export default function AllApprovedExpenses() {
     ApiServices.AdminExpensesByStatus({ status: "Approved" })
       .then((res) => {
         if (res?.data?.success) {
-
           const list = res.data.data || [];
 
           /* 🔥 APPLY SAME FILTER LOGIC */
           const filteredList = list.filter((e) => {
             const createdDate = new Date(e.createdAt);
 
-            if (appliedFilters.date &&
-              createdDate.getDate() !== Number(appliedFilters.date))
+            if (
+              appliedFilters.date &&
+              createdDate.getDate() !== Number(appliedFilters.date)
+            )
               return false;
 
-            if (appliedFilters.month &&
-              createdDate.getMonth() + 1 !== Number(appliedFilters.month))
+            if (
+              appliedFilters.month &&
+              createdDate.getMonth() + 1 !== Number(appliedFilters.month)
+            )
               return false;
 
-            if (appliedFilters.year &&
-              createdDate.getFullYear() !== Number(appliedFilters.year))
+            if (
+              appliedFilters.year &&
+              createdDate.getFullYear() !== Number(appliedFilters.year)
+            )
               return false;
 
-            if (appliedFilters.state &&
-              e.storeId?.stateId !== appliedFilters.state)
+            if (
+              appliedFilters.state &&
+              e.storeId?.stateId !== appliedFilters.state
+            )
               return false;
 
-            if (appliedFilters.zone &&
-              e.storeId?.zoneId !== appliedFilters.zone)
+            if (
+              appliedFilters.zone &&
+              e.storeId?.zoneId !== appliedFilters.zone
+            )
+              return false;
+
+            if (appliedFilters.currentApprovalLevel &&
+              e.currentApprovalLevel !== appliedFilters.currentApprovalLevel)
               return false;
 
             return true;
@@ -79,7 +94,6 @@ export default function AllApprovedExpenses() {
           );
 
           setTotalApprovedAmount(total);
-
         } else {
           setData([]);
           setTotalApprovedAmount(0);
@@ -120,6 +134,7 @@ export default function AllApprovedExpenses() {
     TicketID: e.ticketId,
     Store: e.storeId?.storeName,
     ExpenseHead: e.expenseHeadId?.name,
+    Nature: e.natureOfExpense,
     Amount: e.amount,
     ApprovedBy: e.actionBy,
     ApprovedOn: e.actionAt
@@ -204,10 +219,11 @@ export default function AllApprovedExpenses() {
                     <th>Ticket ID</th>
                     <th>Store</th>
                     <th>Expense Head</th>
+                    <th>Nature</th>
                     <th>Amount</th>
                     <th>Approved Date</th>
                     <th>Status</th>
-                    <th>Action</th>
+                    {!isViewer && <th>Action</th>}
                   </tr>
                 </thead>
 
@@ -219,19 +235,24 @@ export default function AllApprovedExpenses() {
                           {(currentPage - 1) * itemsPerPage + index + 1}
                         </td>
                         <td>
-                            {e.createdAt
-                              ? new Date(e.createdAt).toLocaleString("en-IN", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit"
-                              })
-                              : "-"}
-                          </td>
+                          {e.createdAt
+                            ? new Date(e.createdAt).toLocaleString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit"
+                            })
+                            : "-"}
+                        </td>
                         <td>{e.ticketId}</td>
                         <td>{e.storeId?.storeName || "-"}</td>
                         <td>{e.expenseHeadId?.name || "-"}</td>
+                        <td>
+                          <span className={`badge ${e.natureOfExpense === 'CAPEX' ? 'bg-info' : 'bg-secondary'}`}>
+                            {e.natureOfExpense}
+                          </span>
+                        </td>
                         <td>₹ {e.amount}</td>
                         <td>
                           {e.updatedAt
@@ -239,23 +260,25 @@ export default function AllApprovedExpenses() {
                             : "-"}
                         </td>
                         <td>
-                          <span className="badge bg-success">
-                            Approved
+                          <span className={`badge ${e.currentStatus === 'Closed' ? 'bg-info' : 'bg-success'}`}>
+                            {e.currentStatus}
                           </span>
                         </td>
-                        <td>
-                          <button
-                            className="btn btn-sm btn-primary"
-                            onClick={() => handleView(e)}
-                          >
-                            View
-                          </button>
-                        </td>
+                        {!isViewer && (
+                          <td>
+                            <button
+                              className="btn btn-sm btn-primary"
+                              onClick={() => handleView(e)}
+                            >
+                              View
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="8" className="text-center text-muted">
+                      <td colSpan={!isViewer ? 10 : 9} className="text-center text-muted">
                         No Approved Expenses Found
                       </td>
                     </tr>
@@ -321,7 +344,7 @@ export default function AllApprovedExpenses() {
 
               <div className="modal-body px-4">
                 <div className="p-4 mb-4 rounded shadow-sm bg-light border">
-<div className="row g-3">
+                  <div className="row g-3">
 
                     <div className="col-md-6">
                       <div className="text-muted small">Ticket ID</div>
@@ -375,8 +398,8 @@ export default function AllApprovedExpenses() {
 
                     <div className="col-md-6">
                       <div className="text-muted small">Status</div>
-                      <span className="badge bg-success px-3 py-2">
-                        Approved
+                      <span className={`badge ${selectedExpense.currentStatus === 'Closed' ? 'bg-info' : 'bg-success'} px-3 py-2`}>
+                        {selectedExpense.currentStatus}
                       </span>
                     </div>
 

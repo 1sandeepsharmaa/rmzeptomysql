@@ -11,6 +11,7 @@ export default function ManageEmployee() {
   const [load, setLoad] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredData, setFilteredData] = useState([]);
+  const isViewer = sessionStorage.getItem("userType") === "11"; // 👁️ Viewer Role Check
 
   // 🔹 Filter
   const [showFilter, setShowFilter] = useState(false);
@@ -58,9 +59,12 @@ export default function ManageEmployee() {
 
   // ================= STORE EXTRACTOR =================
   const getStores = (emp) => {
+    // Staff models have storeId as populated array
     if (Array.isArray(emp.storeId)) return emp.storeId;
     if (Array.isArray(emp.storeIds)) return emp.storeIds;
     if (Array.isArray(emp.stores)) return emp.stores;
+    // Generic employees have a single Store relation (capitalized by Sequelize)
+    if (emp.Store) return [emp.Store];
     return [];
   };
 
@@ -279,7 +283,7 @@ export default function ManageEmployee() {
                   <th>Store</th>
                   <th>Designation</th>
                   <th>Status</th>
-                  <th>Action</th>
+                  {!isViewer && <th>Action</th>}
                 </tr>
               </thead>
               <tbody>
@@ -305,15 +309,17 @@ export default function ManageEmployee() {
                       </td>
                       <td>{el.designation}</td>
                       <td>{el.status ? "Active" : "Inactive"}</td>
-                      <td>
-                        <Link
-                          to={`/admin/editEmployee/${el._id}`}
-                          state={{ designation: el.designation }}
-                          className="btn btn-primary btn-sm"
-                        >
-                          <i className="bi bi-pen"></i>
-                        </Link>
-                      </td>
+                      {!isViewer && (
+                        <td>
+                          <Link
+                            to={`/admin/editEmployee/${el._id}`}
+                            state={{ designation: el.designation }}
+                            className="btn btn-primary btn-sm"
+                          >
+                            <i className="bi bi-pen"></i>
+                          </Link>
+                        </td>
+                      )}
                     </tr>
                   ))
                 ) : (

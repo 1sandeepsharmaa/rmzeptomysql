@@ -104,12 +104,13 @@ import TodayRequests from "./Components/Admin/Expenses/TodayRequests"
 import PrPoClosedExpense from "./Components/PR_PO/Expenses/PrPoClosedExpenses"
 import AllClosedExpense from "./Components/Admin/Expenses/AllClosedExpense"
 import ZcDashboard from "./Components/Zonal_Commercial/ZcDashboard"
-import ZonalCommercialProfile from "./Components/Profile/PrPoProfile"
 import BFProfile from "./Components/Profile/BFProfile"
 import ProcurementProfile from "./Components/Profile/ProcurementProfile"
 import PrPoProfile from "./Components/Profile/PrPoProfile"
-import FacilityManagerDashboard from "./Components/FM/FacilityManagerDashboard"
 import AdminProfile from "./Components/Admin/Profile/AdminProfile"
+import FacilityManagerDashboard from "./Components/FM/FacilityManagerDashboard"
+import ViewerMaster from "./layout/Viewer/ViewerMaster"
+import ViewerDashboard from "./Components/Viewer/ViewerDashboard"
 
 function App() {
   return (
@@ -189,6 +190,42 @@ function App() {
 
           </Route>
 
+          {/* Viewer Routes */}
+          <Route path="/viewer" element={<ViewerMaster />}>
+            <Route path="/viewer" element={<ViewerDashboard />} />
+
+            {/* Manage Routes (Read Only) */}
+            <Route path="/viewer/manageEmployee" element={<ManageEmployee />} />
+            <Route path="/viewer/zonalHead" element={<ManageZonalHead />} />
+            <Route path="/viewer/CLMs" element={<ManageCLM />} />
+            <Route path="/viewer/FMs" element={<ManageFM />} />
+            <Route path="/viewer/Procurement" element={<ManageProcurement />} />
+            <Route path="/viewer/prPo" element={<ManagePrPo />} />
+            <Route path="/viewer/businessFinance" element={<ManageBusinessFinance />} />
+            <Route path="/viewer/missingBridge" element={<ManageMissingBridge />} />
+            <Route path="/viewer/zonalCommercial" element={<ManageZonalCommercial />} />
+
+            <Route path="/viewer/manageZone" element={<ManageZone />} />
+            <Route path="/viewer/manageState" element={<ManageState />} />
+            <Route path="/viewer/manageCity" element={<ManageCity />} />
+            <Route path="/viewer/manageStoreCategory" element={<ManageStoreCategory />} />
+            <Route path="/viewer/manageStore" element={<ManageStore />} />
+            <Route path="/viewer/manageExpenseHead" element={<ManageExpenseHead />} />
+            <Route path="/viewer/manageApprovalPolicy" element={<ManageApprovalPolicy />} />
+
+            {/* Expense Routes (Read Only) */}
+            <Route path="/viewer/allPendingExpenses" element={<AllPendingExpense />} />
+            <Route path="/viewer/allApprovedExpenses" element={<AllApprovedExpense />} />
+            <Route path="/viewer/allHoldExpenses" element={<AllHoldExpense />} />
+            <Route path="/viewer/allRejectedExpenses" element={<AllRjectedExpense />} />
+            <Route path="/viewer/allClosedExpenses" element={<AllClosedExpense />} />
+            <Route path="/viewer/allExpenses" element={<AllExpenses />} />
+            <Route path="/viewer/todayRequests" element={<TodayRequests />} />
+
+            {/* Profile */}
+            <Route path="/viewer/myProfile" element={<AdminProfile />} />
+          </Route>
+
           <Route path="/fm" element={<FmMaster />}>
             <Route path="/fm" element={<FacilityManagerDashboard />} />
             <Route path="/fm/addExpenses" element={<AddExpenses />} />
@@ -249,7 +286,7 @@ function App() {
             <Route path="/ZonalCommercial" element={<ZcDashboard />} />
             <Route path="/ZonalCommercial/pendingTickets" element={<ZcPendingTickets />} />
             <Route path="/ZonalCommercial/approvedTickets" element={<ZcApprovedTickets />} />
-            <Route path="/ZonalCommercial/zcprofile" element={<ZonalCommercialProfile />} />
+            <Route path="/ZonalCommercial/zcprofile" element={<PrPoProfile />} />
 
           </Route>
 

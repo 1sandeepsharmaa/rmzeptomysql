@@ -19,17 +19,13 @@ const add = (req, res) => {
                 if (expenseHeadData == null) {
                     const expenseHeadPayload = {
                         name: req.body.name,
+                        description: req.body.description || "",
                         status: true
                     };
 
                     expenseHeadModel.create(expenseHeadPayload)
-                        .then((expenseHeadData) => {
-                            res.send({
-                                status: 200,
-                                success: true,
-                                message: "ExpenseHead Added Successfully",
-                                data: expenseHeadData
-                            })
+                        .then((data) => {
+                            res.send({ status: 200, success: true, message: "Expense Head Added Successfully", data: data.toJSON() });
                         })
                         .catch((err) => {
                             console.error("ExpenseHead Add Error:", err);
@@ -61,8 +57,12 @@ const add = (req, res) => {
 }
 
 const getAll = (req, res) => {
-    // req.body used for filter
-    expenseHeadModel.findAll({ where: req.body })
+    // Whitelist allowed filter fields
+    const body = req.body || {};
+    const allowedFilters = {};
+    if (body.status !== undefined) allowedFilters.status = body.status;
+
+    expenseHeadModel.findAll({ where: allowedFilters })
         .then((expenseHeadData) => {
             if (expenseHeadData.length == 0) {
                 res.send({
@@ -72,13 +72,8 @@ const getAll = (req, res) => {
                 })
             }
             else {
-                res.send({
-                    status: 200,
-                    success: true,
-                    message: "ExpenseHead Found",
-                    data: expenseHeadData
-                })
-
+                console.log("ExpenseHead GetAll Data Sample:", expenseHeadData[0]?.toJSON?.());
+                res.send({ status: 200, success: true, message: "Expense Head Found", data: expenseHeadData.map(item => item.toJSON()) });
             }
         })
         .catch((err) => {
@@ -119,7 +114,7 @@ const getSingle = (req, res) => {
                         status: 200,
                         success: true,
                         message: "ExpenseHead Found",
-                        data: expenseHeadData
+                        data: expenseHeadData.toJSON()
                     })
                 }
             })
@@ -150,12 +145,12 @@ const update = (req, res) => {
         const id = req.body.id || req.body._id;
 
         const checkDuplicatePromise = req.body.name
-            ? expenseHeadModel.findOne({ where: { name: req.body.name } })
+            ? expenseHeadModel.findOne({ where: { name: req.body.name, id: { [Op.ne]: id } } })
             : Promise.resolve(null);
 
         checkDuplicatePromise
             .then((existing) => {
-                if (existing && existing.id.toString() !== id.toString()) {
+                if (existing) {
                     res.send({
                         status: 422,
                         success: false,
@@ -176,14 +171,12 @@ const update = (req, res) => {
                                 if (req.body.name) {
                                     expenseHeadData.name = req.body.name
                                 }
+                                if (req.body.description !== undefined) {
+                                    expenseHeadData.description = req.body.description
+                                }
                                 expenseHeadData.save()
-                                    .then((expenseHeadData) => {
-                                        res.send({
-                                            status: 200,
-                                            success: true,
-                                            message: "ExpenseHead Updated Successfully",
-                                            data: expenseHeadData
-                                        })
+                                    .then((updated) => {
+                                        res.send({ status: 200, success: true, message: "Expense Head Updated Successfully", data: updated.toJSON() });
                                     })
                                     .catch((err) => {
                                         console.error("ExpenseHead Update Save Error:", err);

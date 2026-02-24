@@ -9,6 +9,7 @@ import ExpenseTimeline from "../../common/ExpenseTimeline";
 export default function AllExpenses() {
   const [expenses, setExpenses] = useState([]);
   const [load, setLoad] = useState(false);
+  const isViewer = sessionStorage.getItem("userType") === "11";
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedExpense, setSelectedExpense] = useState(null);
@@ -36,8 +37,10 @@ export default function AllExpenses() {
     year: queryParams.get("year"),
     state: queryParams.get("state"),
     zone: queryParams.get("zone"),
+    status: queryParams.get("status"),
+    currentApprovalLevel: queryParams.get("currentApprovalLevel"),
   };
-  
+
   useEffect(() => {
     setCurrentPage(1);
     fetchExpenses();
@@ -67,6 +70,12 @@ export default function AllExpenses() {
 
         if (appliedFilters.zone &&
           e.storeId?.zoneId?.toString() !== appliedFilters.zone) return false;
+
+        if (appliedFilters.status &&
+          e.currentStatus !== appliedFilters.status) return false;
+
+        if (appliedFilters.currentApprovalLevel &&
+          e.currentApprovalLevel !== appliedFilters.currentApprovalLevel) return false;
 
         return true;
       });
@@ -118,7 +127,10 @@ export default function AllExpenses() {
     Store: e.storeId?.storeName,
     ExpenseHead: e.expenseHeadId?.name,
     Amount: e.amount,
+    Nature: e.natureOfExpense,
     Status: e.currentStatus,
+    RejectionComment: e.rejectionComment || "-",
+    RejectedOn: e.rejectedOn ? new Date(e.rejectedOn).toLocaleDateString() : "-",
   }));
   const handleView = (expense) => {
     setSelectedExpense(expense);
@@ -215,12 +227,16 @@ export default function AllExpenses() {
               <thead className="table-dark">
                 <tr>
                   <th>Sr No</th>
+                  <th>Created At</th>
                   <th>Ticket ID</th>
                   <th>Store</th>
                   <th>Expense Head</th>
+                  <th>Nature</th>
                   <th>Amount</th>
                   <th>Status</th>
-                  <th>Action</th>
+                  <th>Rejection Comment</th>
+                  <th>Rejected On</th>
+                  {!isViewer && <th>Action</th>}
                 </tr>
               </thead>
 
@@ -229,9 +245,25 @@ export default function AllExpenses() {
                   currentData.map((e, index) => (
                     <tr key={e._id}>
                       <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                      <td>
+                        {e.createdAt
+                          ? new Date(e.createdAt).toLocaleString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          })
+                          : "-"}
+                      </td>
                       <td>{e.ticketId}</td>
                       <td>{e.storeId?.storeName}</td>
                       <td>{e.expenseHeadId?.name}</td>
+                      <td>
+                        <span className={`badge ${e.natureOfExpense === 'CAPEX' ? 'bg-info' : 'bg-secondary'}`}>
+                          {e.natureOfExpense}
+                        </span>
+                      </td>
                       <td>₹ {Number(e.amount).toLocaleString()}</td>
                       <td>
                         <span
@@ -250,20 +282,32 @@ export default function AllExpenses() {
                           {e.currentStatus}
                         </span>
                       </td>
+                      <td>{e.rejectionComment || "-"}</td>
                       <td>
-                        <button
-                          className="btn btn-sm btn-primary"
-                          onClick={() => handleView(e)}
-                        >
-                          View
-                        </button>
+                        {e.rejectedOn
+                          ? new Date(e.rejectedOn).toLocaleString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric"
+                          })
+                          : "-"}
                       </td>
+                      {!isViewer && (
+                        <td>
+                          <button
+                            className="btn btn-sm btn-primary"
+                            onClick={() => handleView(e)}
+                          >
+                            View
+                          </button>
+                        </td>
+                      )}
 
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="text-center text-muted">
+                    <td colSpan={!isViewer ? 11 : 10} className="text-center text-muted">
                       No Requests Found
                     </td>
                   </tr>
@@ -349,6 +393,16 @@ export default function AllExpenses() {
                         ₹ {Number(selectedExpense.amount).toLocaleString()}
                       </div>
                     </div>
+
+                    <div className="col-md-6">
+                      <div className="text-muted small">Nature of Expense</div>
+                      <div className="fw-semibold">
+                        <span className={`badge ${selectedExpense.natureOfExpense === 'CAPEX' ? 'bg-info' : 'bg-secondary'}`}>
+                          {selectedExpense.natureOfExpense}
+                        </span>
+                      </div>
+                    </div>
+
                     {selectedExpense.currentStatus === "Closed" && (
                       <div className="col-md-6">
                         <div className="text-muted small">Prism ID</div>
@@ -390,6 +444,23 @@ export default function AllExpenses() {
                         {new Date(selectedExpense.createdAt).toLocaleString()}
                       </div>
                     </div>
+
+                    {selectedExpense.currentStatus === "Rejected" && (
+                      <>
+                        <div className="col-md-6">
+                          <div className="text-muted small">Rejection Comment</div>
+                          <div className="text-danger fw-semibold">
+                            {selectedExpense.rejectionComment || "-"}
+                          </div>
+                        </div>
+                        <div className="col-md-6">
+                          <div className="text-muted small">Rejected On</div>
+                          <div>
+                            {selectedExpense.rejectedOn ? new Date(selectedExpense.rejectedOn).toLocaleString() : "-"}
+                          </div>
+                        </div>
+                      </>
+                    )}
 
                     {/* Attachments */}
                     <div className="col-12">

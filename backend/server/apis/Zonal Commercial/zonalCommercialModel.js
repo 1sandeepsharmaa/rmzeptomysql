@@ -27,8 +27,10 @@ const ZonalCommercial = sequelize.define('ZonalCommercial', {
         type: DataTypes.INTEGER,
         defaultValue: null
     },
-    // storeId was [{ type: ObjectId, ref: "storeData" }]
-    // implies Many-To-Many. Handled via associations.
+    storeId: {
+        type: DataTypes.JSON,
+        defaultValue: []
+    },
 
     designation: {
         type: DataTypes.STRING,

@@ -11,6 +11,12 @@ app.use(cors());
 
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json({ limit: '40mb' }))
+
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.originalUrl}`);
+  next();
+});
+
 app.use(require("./server/middleware/queryParser"))
 
 app.use("/uploads", express.static("uploads"));
@@ -57,14 +63,13 @@ app.post('/', (req, res) => {
 db.syncDatabase()
   .then(() => {
     seeder.adminReg();
-    app.listen(port, (err) => {
-      if (err) {
-        console.log("server is not connected!!")
-      }
-      else {
-        console.log("server is running on port", port)
-      }
+    seeder.viewerReg();
+    const server = app.listen(port, () => {
+      console.log("server is running on port", port)
     })
+    server.on('error', (err) => {
+      console.error("server failed to start:", err);
+    });
   })
   .catch(err => {
     console.error("Failed to initialize system:", err);

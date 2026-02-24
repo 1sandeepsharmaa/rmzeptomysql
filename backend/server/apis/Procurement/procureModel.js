@@ -27,8 +27,10 @@ const Procurement = sequelize.define('Procurement', {
         type: DataTypes.INTEGER,
         defaultValue: null
     },
-    // storeId was [{ type: ObjectId, ref: "storeData" }]
-    // implies Many-To-Many or Array. Handled via associations.
+    storeId: {
+        type: DataTypes.JSON,
+        defaultValue: []
+    },
 
     designation: {
         type: DataTypes.STRING,

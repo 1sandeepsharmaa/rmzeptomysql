@@ -6,7 +6,7 @@ const clmController = require("../apis/CLM/clmController")
 const fmController = require("../apis/Facility Manager/facilityManagerController")
 const bfController = require("../apis/Business Finance/businessFinanceController")
 const procureController = require("../apis/Procurement/procurementController")
-const prpoController = require("../apis/PrPo/PrPoController")
+const prpoController = require("../apis/PrPo/prPoController")
 const zonalCommercialController = require("../apis/Zonal Commercial/zonalCommercialController")
 const missingBridgeController = require("../apis/Missing Bridge/missingBridgeController")
 const zoneController = require("../apis/Zone/zoneController")
@@ -31,9 +31,11 @@ const upload = require("../middleware/upload");
 
 //login
 routes.post("/user/login", userController.login)
+routes.post("/google-login", userController.googleSsoLogin);
 
 // Token checker
 routes.use(require("../middleware/tokenChecker"))
+routes.use(require("../middleware/readOnlyChecker"))
 
 // Employee Model
 routes.post("/employee/add", employeeModel.add)

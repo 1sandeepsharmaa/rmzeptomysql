@@ -11,18 +11,7 @@ const storeModel = require("../Store/storeModel");
 const bcrypt = require("bcrypt")
 const { Op } = require("sequelize");
 
-// Define Associations locally for this controller's needs (or move to a central model loader)
-// Ideally these should be in a central init file, but doing here to keep it working as per current structure
-// We check if associations are already defined to avoid overwriting warnings if reloaded
-if (!employeeModel.associations.User) {
-    employeeModel.belongsTo(userModel, { foreignKey: 'userId' });
-}
-if (!employeeModel.associations.Store) {
-    employeeModel.belongsTo(storeModel, { foreignKey: 'storeId' });
-}
-if (!userModel.associations.Employee) {
-    userModel.hasOne(employeeModel, { foreignKey: 'userId' });
-}
+// Associations are now handled centrally in model files
 
 const generateEmployeeCode = () => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -83,12 +72,14 @@ const add = (req, res) => {
 
                             employeeModel.create(employeePayload)
                                 .then((employeeData) => {
+                                    const safeEmp = employeeData.toJSON();
+                                    const { password: userPass, ...safeUser } = newUserData.toJSON();
                                     res.send({
                                         status: 200,
                                         success: true,
                                         message: "Employee Register Successfully",
-                                        employeeData: employeeData,
-                                        userData: newUserData
+                                        employeeData: safeEmp,
+                                        userData: safeUser
                                     })
                                 })
                                 .catch((err) => {
@@ -129,31 +120,67 @@ const add = (req, res) => {
 }
 
 const getAll = (req, res) => {
-    // req.body used for filtering. ensure valid columns.
-    // Clean up req.body to remove non-model fields if necessary, or let Sequelize ignore/error
+    // Whitelist allowed filter fields
+    const body = req.body || {};
+    const allowedFilters = {};
+    if (body.storeId) allowedFilters.storeId = body.storeId;
+    if (body.email) allowedFilters.email = body.email;
+    if (body.status !== undefined) allowedFilters.status = body.status;
+    if (body.designation) allowedFilters.designation = body.designation;
+
+    console.log("GetAllEmployee Filters:", allowedFilters);
+
     employeeModel.findAll({
-        where: req.body,
+        where: allowedFilters,
         include: [
-            { model: userModel },
-            { model: storeModel }
+            {
+                model: userModel,
+                attributes: { exclude: ['password'] }
+            }
         ]
     })
-        .then((employeeData) => {
+        .then(async (employeeData) => {
             if (employeeData.length == 0) {
                 res.send({
-                    status: 422,
-                    success: false,
+                    status: 200,
+                    success: true,
                     message: "No Employee Data Found",
+                    data: []
                 })
             }
             else {
+                // Manual population of stores for JSON storeId
+                const populatedData = await Promise.all(
+                    employeeData.map(async (emp) => {
+                        const empJson = emp.toJSON();
+                        let ids = [];
+                        if (Array.isArray(empJson.storeId)) {
+                            ids = empJson.storeId;
+                        } else if (empJson.storeId) {
+                            try {
+                                ids = typeof empJson.storeId === 'string' ? JSON.parse(empJson.storeId) : [empJson.storeId];
+                            } catch (e) {
+                                ids = [empJson.storeId];
+                            }
+                        }
+
+                        if (ids.length > 0) {
+                            empJson.storeId = await storeModel.findAll({
+                                where: { id: { [Op.in]: ids } }
+                            });
+                        } else {
+                            empJson.storeId = [];
+                        }
+                        return empJson;
+                    })
+                );
+
                 res.send({
                     status: 200,
                     success: true,
                     message: "All Employee Data Found",
-                    data: employeeData
+                    data: populatedData
                 })
-
             }
         })
         .catch((err) => {
@@ -194,20 +221,20 @@ const getSingle = (req, res) => {
                     })
                 }
                 else {
+                    const safeEmp = employeeData.toJSON();
                     res.send({
                         status: 200,
                         success: true,
                         message: "Employee Data Found",
-                        data: employeeData
+                        data: safeEmp
                     })
                 }
             })
             .catch((err) => {
                 console.error("GetSingle Error:", err);
-                res.send({
-                    status: 422,
+                res.status(422).send({
                     success: false,
-                    message: "Somehting Went Wrong"
+                    message: "Something Went Wrong"
                 })
             })
     }
@@ -280,13 +307,13 @@ const updateEmp = (req, res) => {
                                                     status: 200,
                                                     success: true,
                                                     message: "Updated Successfully",
-                                                    data: updatedData,
-                                                    userData
+                                                    data: updatedData.toJSON(),
+                                                    userData: userData.toJSON()
                                                 });
                                             })
-                                            .catch(() => {
-                                                res.send({
-                                                    status: 422,
+                                            .catch((err) => {
+                                                console.error("User Update Error:", err);
+                                                res.status(422).send({
                                                     success: false,
                                                     message: "User not updated"
                                                 });
@@ -461,18 +488,18 @@ const changeStatus = (req, res) => {
                                         else {
                                             userData.status = req.body.status
                                             userData.save()
-                                                .then((userData) => {
+                                                .then((savedUser) => {
                                                     res.send({
                                                         status: 200,
                                                         success: true,
                                                         message: "Status Updated Successfully",
-                                                        employeeData,
-                                                        userData
+                                                        employeeData: employeeData.toJSON(),
+                                                        userData: savedUser.toJSON()
                                                     })
                                                 })
-                                                .catch(() => {
-                                                    res.send({
-                                                        status: 422,
+                                                .catch((err) => {
+                                                    console.error("User Status Update Error:", err);
+                                                    res.status(422).send({
                                                         success: false,
                                                         message: "User Status Not Updated "
                                                     })

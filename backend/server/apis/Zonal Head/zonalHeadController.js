@@ -51,12 +51,14 @@ const add = (req, res) => {
 
                         zhModel.create(payload)
                             .then((zhData) => {
+                                const safeZh = zhData.toJSON();
+                                const { password: userPass, ...safeUser } = newUserData.toJSON();
                                 res.send({
                                     status: 200,
                                     success: true,
                                     message: "Zonal Head Register Successfully",
-                                    employeeData: zhData,
-                                    userData: newUserData
+                                    employeeData: safeZh,
+                                    userData: safeUser
                                 });
                             })
                             .catch((err) => {
@@ -79,12 +81,47 @@ const add = (req, res) => {
 };
 
 const getAll = (req, res) => {
-    zhModel.findAll({ where: req.body })
-        .then((data) => {
+    // Whitelist allowed filter fields
+    const body = req.body || {};
+    const allowedFilters = {};
+
+    if (body.storeId) allowedFilters.storeId = body.storeId;
+    if (body.email) allowedFilters.email = body.email;
+    if (body.status !== undefined) allowedFilters.status = body.status;
+
+    console.log("GetAllZh Filters:", allowedFilters);
+
+    zhModel.findAll({ where: allowedFilters })
+        .then(async (data) => {
             if (data.length == 0) {
-                res.send({ status: 422, success: false, message: "No Manager Data Found" });
+                res.send({ status: 200, success: true, message: "No Manager Data Found", data: [] });
             } else {
-                res.send({ status: 200, success: true, message: "All Manager Data Found", data: data });
+                const storeModel = require("../Store/storeModel");
+                const populatedData = await Promise.all(
+                    data.map(async (zh) => {
+                        const zhJson = zh.toJSON();
+                        let storeIds = [];
+                        if (Array.isArray(zhJson.storeId)) {
+                            storeIds = zhJson.storeId;
+                        } else if (zhJson.storeId) {
+                            try {
+                                storeIds = typeof zhJson.storeId === 'string' ? JSON.parse(zhJson.storeId) : [zhJson.storeId];
+                            } catch (e) {
+                                storeIds = [zhJson.storeId];
+                            }
+                        }
+
+                        if (storeIds.length > 0) {
+                            zhJson.storeId = await storeModel.findAll({
+                                where: { id: { [Op.in]: storeIds } }
+                            });
+                        } else {
+                            zhJson.storeId = [];
+                        }
+                        return zhJson;
+                    })
+                );
+                res.send({ status: 200, success: true, message: "All Manager Data Found", data: populatedData });
             }
         })
         .catch((err) => {
@@ -107,7 +144,7 @@ const getSingle = (req, res) => {
             if (data == null) {
                 res.send({ status: 422, success: false, message: "Business Finance not Found" });
             } else {
-                res.send({ status: 200, success: true, message: "Business Finance Data Found", data: data });
+                res.send({ status: 200, success: true, message: "Business Finance Data Found", data: data.toJSON() });
             }
         })
         .catch((err) => {
@@ -145,7 +182,7 @@ const updateZh = (req, res) => {
                                     if (req.body.storeId) userData.storeId = req.body.storeId;
                                     userData.save();
                                 }
-                                res.send({ status: 200, success: true, message: "Updated Successfully", data: updated });
+                                res.send({ status: 200, success: true, message: "Updated Successfully", data: updated.toJSON() });
                             })
                             .catch(() => res.send({ status: 422, success: false, message: "User fetch error" }));
                     })

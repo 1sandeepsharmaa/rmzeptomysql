@@ -8,7 +8,7 @@ const City = sequelize.define('City', {
         autoIncrement: true
     },
     cityName: {
-        type: DataTypes.JSON, // Mongoose schema had [{type:String}], implying multiple names or an array
+        type: DataTypes.JSON,
         defaultValue: []
     },
     stateId: {
@@ -33,5 +33,10 @@ const City = sequelize.define('City', {
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
 });
+
+City.associate = (models) => {
+    City.belongsTo(models.State, { foreignKey: 'stateId', as: 'stateData' });
+    City.belongsTo(models.Zone, { foreignKey: 'zoneId', as: 'zoneData' });
+};
 
 module.exports = City;

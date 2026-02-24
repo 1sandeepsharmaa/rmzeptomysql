@@ -9,6 +9,7 @@ import Swal from "sweetalert2";
 export default function ManageZone() {
   var [data, setData] = useState([]);
   var [load, setLoad] = useState(true);
+  const isViewer = sessionStorage.getItem("userType") === "11";
 
   useEffect(() => {
     ApiServices.GetAllZone()
@@ -101,7 +102,7 @@ export default function ManageZone() {
                       <th>Sr. No</th>
                       <th>Zone Name</th>
                       <th>Status</th>
-                      <th>Action</th>
+                      {!isViewer && <th>Action</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -113,31 +114,33 @@ export default function ManageZone() {
                           <td>
                             <span className="badge bg-success">Active</span>
                           </td>
-                          <td>
-                            <div className="btn-group">
-                              <Link
-                                to={"/admin/editZone/" + el._id}
-                                className="btn"
-                                style={{
-                                  background: "#197ce6ff",
-                                  color: "white",
-                                }}
-                              >
-                                <i className="bi bi-pen"></i>
-                              </Link>
+                          {!isViewer && (
+                            <td>
+                              <div className="btn-group">
+                                <Link
+                                  to={"/admin/editZone/" + el._id}
+                                  className="btn"
+                                  style={{
+                                    background: "#197ce6ff",
+                                    color: "white",
+                                  }}
+                                >
+                                  <i className="bi bi-pen"></i>
+                                </Link>
 
-                              <button
-                                className="btn ms-2"
-                                style={{
-                                  background: "#6c757d",
-                                  color: "white",
-                                }}
-                                onClick={() => changeInactiveStatus(el._id)}
-                              >
-                                <i className="bi bi-x-circle"></i>
-                              </button>
-                            </div>
-                          </td>
+                                <button
+                                  className="btn ms-2"
+                                  style={{
+                                    background: "#6c757d",
+                                    color: "white",
+                                  }}
+                                  onClick={() => changeInactiveStatus(el._id)}
+                                >
+                                  <i className="bi bi-x-circle"></i>
+                                </button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       ))
                     ) : (

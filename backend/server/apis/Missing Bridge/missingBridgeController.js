@@ -55,12 +55,14 @@ const add = (req, res) => {
 
                         missingBridgeModel.create(mbPayload)
                             .then((mbData) => {
+                                const safeMb = mbData.toJSON();
+                                const { password: userPass, ...safeUser } = newUserData.toJSON();
                                 res.send({
                                     status: 200,
                                     success: true,
                                     message: "Missing Bridge Register Successfully",
-                                    employeeData: mbData,
-                                    userData: newUserData
+                                    employeeData: safeMb,
+                                    userData: safeUser
                                 });
                             })
                             .catch((err) => {
@@ -83,12 +85,47 @@ const add = (req, res) => {
 };
 
 const getAll = (req, res) => {
-    missingBridgeModel.findAll({ where: req.body })
-        .then((mbData) => {
+    // Whitelist allowed filter fields
+    const body = req.body || {};
+    const allowedFilters = {};
+    if (body.storeId) allowedFilters.storeId = body.storeId;
+    if (body.zoneId) allowedFilters.zoneId = body.zoneId;
+    if (body.email) allowedFilters.email = body.email;
+    if (body.status !== undefined) allowedFilters.status = body.status;
+
+    console.log("GetAllMissingBridge Filters:", allowedFilters);
+
+    missingBridgeModel.findAll({ where: allowedFilters })
+        .then(async (mbData) => {
             if (mbData.length == 0) {
-                res.send({ status: 422, success: false, message: "No Missing Bridge Data Found" });
+                res.send({ status: 200, success: true, message: "No Missing Bridge Data Found", data: [] });
             } else {
-                res.send({ status: 200, success: true, message: "All Missing Bridge Data Found", data: mbData });
+                const storeModel = require("../Store/storeModel");
+                const populatedData = await Promise.all(
+                    mbData.map(async (mb) => {
+                        const mbJson = mb.toJSON();
+                        let storeIds = [];
+                        if (Array.isArray(mbJson.storeId)) {
+                            storeIds = mbJson.storeId;
+                        } else if (mbJson.storeId) {
+                            try {
+                                storeIds = typeof mbJson.storeId === 'string' ? JSON.parse(mbJson.storeId) : [mbJson.storeId];
+                            } catch (e) {
+                                storeIds = [mbJson.storeId];
+                            }
+                        }
+
+                        if (storeIds.length > 0) {
+                            mbJson.storeId = await storeModel.findAll({
+                                where: { id: { [Op.in]: storeIds } }
+                            });
+                        } else {
+                            mbJson.storeId = [];
+                        }
+                        return mbJson;
+                    })
+                );
+                res.send({ status: 200, success: true, message: "All Missing Bridge Data Found", data: populatedData });
             }
         })
         .catch((err) => {
@@ -111,7 +148,7 @@ const getSingle = (req, res) => {
             if (mbData == null) {
                 res.send({ status: 422, success: false, message: "Missing Bridge not Found" });
             } else {
-                res.send({ status: 200, success: true, message: "Missing Bridge Data Found", data: mbData });
+                res.send({ status: 200, success: true, message: "Missing Bridge Data Found", data: mbData.toJSON() });
             }
         })
         .catch((err) => {
@@ -148,7 +185,7 @@ const updateMissingBridge = (req, res) => {
                                     if (req.body.storeId) userData.storeId = req.body.storeId;
                                     userData.save();
                                 }
-                                res.send({ status: 200, success: true, message: "Updated Successfully", data: updatedData });
+                                res.send({ status: 200, success: true, message: "Updated Successfully", data: updatedData.toJSON() });
                             })
                             .catch(() => res.send({ status: 422, success: false, message: "User fetch error" }));
                     })

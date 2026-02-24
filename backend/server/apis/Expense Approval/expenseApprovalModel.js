@@ -44,4 +44,9 @@ const ExpenseApproval = sequelize.define('ExpenseApproval', {
     toObject: { virtuals: true }
 });
 
+ExpenseApproval.associate = (models) => {
+    ExpenseApproval.belongsTo(models.Expense, { foreignKey: 'expenseId', as: 'expense' });
+    ExpenseApproval.belongsTo(models.User, { foreignKey: 'approverId', as: 'approver' });
+};
+
 module.exports = ExpenseApproval;

@@ -114,4 +114,13 @@ const Expense = sequelize.define('Expense', {
     toObject: { virtuals: true }
 });
 
+// Associations
+// Note: We use lazy loading for models to avoid circular dependencies
+Expense.associate = (models) => {
+    Expense.belongsTo(models.User, { foreignKey: 'raisedBy', as: 'user' });
+    Expense.belongsTo(models.ExpenseHead, { foreignKey: 'expenseHeadId', as: 'expenseHead' });
+    Expense.belongsTo(models.Store, { foreignKey: 'storeId', as: 'store' });
+    Expense.hasMany(models.ExpenseApproval, { foreignKey: 'expenseId', as: 'approvals' });
+};
+
 module.exports = Expense;

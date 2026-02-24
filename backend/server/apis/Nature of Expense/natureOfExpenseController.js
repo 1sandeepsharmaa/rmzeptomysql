@@ -29,7 +29,7 @@ const add = (req, res) => {
                             status: 200,
                             success: true,
                             message: "Nature of Expense Added Successfully",
-                            data: data
+                            data: data.toJSON()
                         });
                     })
                     .catch((err) => {
@@ -47,7 +47,12 @@ const add = (req, res) => {
 };
 
 const getAll = (req, res) => {
-    NatureOfExpenseModel.findAll({ where: req.body })
+    // Whitelist allowed filter fields
+    const allowedFilters = {};
+    if (req.body.ExpenseHeadId) allowedFilters.ExpenseHeadId = req.body.ExpenseHeadId;
+    if (req.body.status !== undefined) allowedFilters.status = req.body.status;
+
+    NatureOfExpenseModel.findAll({ where: allowedFilters })
         .then((data) => {
             if (data.length == 0) {
                 res.send({ status: 402, success: false, message: "Nature of Expense is Empty" });
@@ -75,7 +80,7 @@ const getSingle = (req, res) => {
             if (data == null) {
                 res.send({ status: 422, success: false, message: "Nature of Expense not Found" });
             } else {
-                res.send({ status: 200, success: true, message: "Nature of Expense Found", data: data });
+                res.send({ status: 200, success: true, message: "Nature of Expense Found", data: data.toJSON() });
             }
         })
         .catch((err) => {
@@ -112,7 +117,7 @@ const update = (req, res) => {
 
                             noeData.save()
                                 .then((updated) => {
-                                    res.send({ status: 200, success: true, message: "Nature of Expense Updated Successfully", data: updated });
+                                    res.send({ status: 200, success: true, message: "Nature of Expense Updated Successfully", data: updated.toJSON() });
                                 })
                                 .catch(() => res.send({ status: 422, success: false, message: "Nature of Expense not Updated" }));
                         }

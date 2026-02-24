@@ -61,12 +61,14 @@ const add = (req, res) => {
 
                             clmModel.create(clmPayload)
                                 .then((clmData) => {
+                                    const safeClm = clmData.toJSON();
+                                    const { password: userPass, ...safeUser } = newUserData.toJSON();
                                     res.send({
                                         status: 200,
                                         success: true,
                                         message: "CLM Register Successfully",
-                                        employeeData: clmData,
-                                        userData: newUserData
+                                        employeeData: safeClm,
+                                        userData: safeUser
                                     })
                                 })
                                 .catch((err) => {
@@ -107,25 +109,51 @@ const add = (req, res) => {
 }
 
 const getAll = (req, res) => {
-    clmModel.findAll({ where: req.body })
-        // .populate("userId").populate("storeId") 
-        // Sequelize include logic would go here if associations are defined.
-        .then((clmData) => {
+    // Whitelist allowed filter fields
+    const body = req.body || {};
+    const allowedFilters = {};
+    if (body.storeId) allowedFilters.storeId = body.storeId;
+    if (body.email) allowedFilters.email = body.email;
+    if (body.status !== undefined) allowedFilters.status = body.status;
+
+    console.log("GetAllClm Filters:", allowedFilters);
+
+    clmModel.findAll({ where: allowedFilters })
+        .then(async (clmData) => {
             if (clmData.length == 0) {
-                res.send({
-                    status: 422,
-                    success: false,
-                    message: "No CLM Data Found",
-                })
-            }
-            else {
+                res.send({ status: 200, success: true, message: "No CLM Data Found", data: [] });
+            } else {
+                const storeModel = require("../Store/storeModel");
+                const populatedData = await Promise.all(
+                    clmData.map(async (clm) => {
+                        const clmJson = clm.toJSON();
+                        let storeIds = [];
+                        if (Array.isArray(clmJson.storeId)) {
+                            storeIds = clmJson.storeId;
+                        } else if (clmJson.storeId) {
+                            try {
+                                storeIds = typeof clmJson.storeId === 'string' ? JSON.parse(clmJson.storeId) : [clmJson.storeId];
+                            } catch (e) {
+                                storeIds = [clmJson.storeId];
+                            }
+                        }
+
+                        if (storeIds.length > 0) {
+                            clmJson.storeId = await storeModel.findAll({
+                                where: { id: { [Op.in]: storeIds } }
+                            });
+                        } else {
+                            clmJson.storeId = [];
+                        }
+                        return clmJson;
+                    })
+                );
                 res.send({
                     status: 200,
                     success: true,
                     message: "All CLM Data Found",
-                    data: clmData
+                    data: populatedData
                 })
-
             }
         })
         .catch((err) => {
@@ -166,7 +194,7 @@ const getSingle = (req, res) => {
                         status: 200,
                         success: true,
                         message: "CLM Data Found", // Fixed message
-                        data: clmData
+                        data: clmData.toJSON()
                     })
                 }
             })
@@ -250,7 +278,7 @@ const updateClm = (req, res) => {
                                                     status: 200,
                                                     success: true,
                                                     message: "Updated Successfully",
-                                                    data: updatedData
+                                                    data: updatedData.toJSON()
                                                 });
                                             })
                                             .catch(() => {

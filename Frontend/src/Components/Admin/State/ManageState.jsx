@@ -9,6 +9,7 @@ import { CSVLink } from "react-csv";
 export default function ManageState() {
   const [data, setData] = useState([]);
   const [load, setLoad] = useState(true);
+  const isViewer = sessionStorage.getItem("userType") === "11";
 
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -18,6 +19,7 @@ export default function ManageState() {
     ApiServices.GetAllState()
       .then((res) => {
         if (res?.data?.success) {
+          console.log("State Fetched Data Sample:", res.data.data[0]);
           setData(res?.data?.data || []);
         } else {
           setData([]);
@@ -34,7 +36,7 @@ export default function ManageState() {
   /* ================= SEARCH ================= */
   const filteredStates = activeStates.filter(
     (el) =>
-      el.zoneId?.zoneName
+      el.zoneData?.zoneName
         ?.toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
       el.stateName?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -50,7 +52,7 @@ export default function ManageState() {
   /* ================= CSV DATA ================= */
   const csvData = filteredStates.map((el, idx) => ({
     SrNo: idx + 1,
-    Zone: el.zoneId?.zoneName || "",
+    Zone: el.zoneData?.zoneName || "",
     States: el.stateName || "",
   }));
 
@@ -148,7 +150,7 @@ export default function ManageState() {
                       <th>Sr. No</th>
                       <th>Zone</th>
                       <th>State</th>
-                      <th>Action</th>
+                      {!isViewer && <th>Action</th>}
                     </tr>
                   </thead>
 
@@ -159,32 +161,34 @@ export default function ManageState() {
                           <td>
                             {(currentPage - 1) * itemsPerPage + index + 1}
                           </td>
-                          <td>{el.zoneId?.zoneName}</td>
+                          <td>{el.zoneData?.zoneName}</td>
                           <td>{el.stateName}</td>
-                          <td>
-                            <div className="btn-group">
-                              <Link
-                                to={`/admin/editState/${el._id}`}
-                                className="btn"
-                                style={{
-                                  background: "#197ce6ff",
-                                  color: "white",
-                                }}
-                              >
-                                <i className="bi bi-pen"></i>
-                              </Link>
-                              <button
-                                className="btn ms-2"
-                                style={{
-                                  background: "#6c757d",
-                                  color: "white",
-                                }}
-                                onClick={() => changeInactiveStatus(el._id)}
-                              >
-                                <i className="bi bi-x-circle"></i>
-                              </button>
-                            </div>
-                          </td>
+                          {!isViewer && (
+                            <td>
+                              <div className="btn-group">
+                                <Link
+                                  to={`/admin/editState/${el._id}`}
+                                  className="btn"
+                                  style={{
+                                    background: "#197ce6ff",
+                                    color: "white",
+                                  }}
+                                >
+                                  <i className="bi bi-pen"></i>
+                                </Link>
+                                <button
+                                  className="btn ms-2"
+                                  style={{
+                                    background: "#6c757d",
+                                    color: "white",
+                                  }}
+                                  onClick={() => changeInactiveStatus(el._id)}
+                                >
+                                  <i className="bi bi-x-circle"></i>
+                                </button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       ))
                     ) : (
@@ -213,9 +217,8 @@ export default function ManageState() {
                 {[...Array(totalPages)].map((_, i) => (
                   <button
                     key={i}
-                    className={`btn me-1 ${
-                      currentPage === i + 1 ? "btn-primary" : "btn-light"
-                    }`}
+                    className={`btn me-1 ${currentPage === i + 1 ? "btn-primary" : "btn-light"
+                      }`}
                     onClick={() => setCurrentPage(i + 1)}
                   >
                     {i + 1}

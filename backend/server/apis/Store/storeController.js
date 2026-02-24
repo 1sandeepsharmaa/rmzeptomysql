@@ -3,9 +3,7 @@ const employeeModel = require("../Employee/employeeModel");
 const userModel = require("../User/userModel");
 const { Op } = require("sequelize");
 
-// Define Associations
-storeModel.hasMany(employeeModel, { foreignKey: 'storeId' });
-employeeModel.belongsTo(storeModel, { foreignKey: 'storeId' });
+// Associations are now handled centrally in model files
 
 const add = (req, res) => {
     var errMsgs = []
@@ -90,28 +88,30 @@ const add = (req, res) => {
 }
 
 const getAll = (req, res) => {
-    // req.body used for filter
-    storeModel.findAll({ where: req.body })
-        // .populate is replaced by include, but we need defined models and associations. 
-        // Assuming storeCategoryId, stateId, zoneId refer to other models which we might need to include if we want details.
-        // For now, returning store data. Mongoose code populated these, implying they are references.
-        // If we want to populate, we need to import those models and define associations.
-        // For this task, I'll focus on replacing Mongoose syntax. If associations are critical for frontend, they should be added.
-        // Given complexity, I will just return raw IDs for now or try to include if I can import them easily.
-        // But to keep it simple and working as "mysql", I'll stick to basic CRUD first or just allow IDs.
-        // Wait, the Mongoose code had populates. The user expects "proper working application".
-        // I should probably skip populates if I don't have the models readily available/imported in this file, or import them.
-        // Let's import basic structure if needed, but given the time, maybe just returning IDs is safer than breaking on missing associations.
-        // I will add comments about missing associations if I can't easily add them.
-        // Actually, let's try to do it right if possible. I don't see those models imported in the original file, Mongoose does it by string name.
-        // Sequelize needs explicit model imports.
-        // I'll stick to basic implementation and add TODOs for associations to other controllers/models.
+    // Whitelist allowed filter fields
+    const body = req.body || {};
+    const allowedFilters = {};
+    if (body.storeCategoryId) allowedFilters.storeCategoryId = body.storeCategoryId;
+    if (body.stateId) allowedFilters.stateId = body.stateId;
+    if (body.zoneId) allowedFilters.zoneId = body.zoneId;
+    if (body.cityName) allowedFilters.cityName = body.cityName;
+    if (body.status !== undefined) allowedFilters.status = body.status;
+
+    storeModel.findAll({
+        where: allowedFilters,
+        include: [
+            { model: require("../Store Category/storeCategoryModel"), as: 'storeCategoryData' },
+            { model: require("../State/stateModel"), as: 'stateData' },
+            { model: require("../Zone/zoneModel"), as: 'zoneData' }
+        ]
+    })
         .then((storeData) => {
             if (storeData.length == 0) {
                 res.send({
-                    status: 402, // Kept same status code as original
-                    success: false,
+                    status: 200,
+                    success: true,
                     message: "Store is Empty",
+                    data: []
                 })
             }
             else {
@@ -121,7 +121,6 @@ const getAll = (req, res) => {
                     message: "Store Found",
                     data: storeData
                 })
-
             }
         })
         .catch((err) => {
@@ -162,16 +161,15 @@ const getSingle = (req, res) => {
                         status: 200,
                         success: true,
                         message: "Store Found",
-                        data: storeData
+                        data: storeData.toJSON()
                     })
                 }
             })
             .catch((err) => {
                 console.error("GetSingle Store Error:", err);
-                res.send({
-                    status: 422,
+                res.status(422).send({
                     success: false,
-                    message: "Somehting Went Wrong"
+                    message: "Something Went Wrong"
                 })
             })
     }
@@ -244,7 +242,7 @@ const update = (req, res) => {
                                             status: 200,
                                             success: true,
                                             message: "Store Updated Successfully",
-                                            data: storeData
+                                            data: storeData.toJSON()
                                         })
                                     })
                                     .catch(() => {
@@ -358,12 +356,12 @@ const changeStatus = (req, res) => {
                 else {
                     storeData.status = req.body.status
                     storeData.save()
-                        .then((storeData) => {
+                        .then((savedStore) => {
                             res.send({
                                 status: 200,
                                 success: true,
                                 message: "Status Successfully Updated",
-                                data: storeData
+                                data: savedStore.toJSON()
                             })
                         })
                         .catch(() => {

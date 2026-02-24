@@ -78,11 +78,32 @@ const add = (req, res) => {
 
 const getAll = (req, res) => {
     prpoModel.findAll({ where: req.body })
-        .then((data) => {
+        .then(async (data) => {
             if (data.length == 0) {
-                res.send({ status: 422, success: false, message: "No PR/PO Data Found" });
+                res.send({ status: 200, success: true, message: "No Data Found", data: [] });
             } else {
-                res.send({ status: 200, success: true, message: "All PR/PO Data Found", data: data });
+                const storeModel = require("../Store/storeModel");
+                const populatedData = await Promise.all(
+                    data.map(async (p) => {
+                        const pJson = p.toJSON();
+                        let storeIds = [];
+                        if (Array.isArray(pJson.storeId)) {
+                            storeIds = pJson.storeId;
+                        } else if (pJson.storeId) {
+                            storeIds = [pJson.storeId];
+                        }
+
+                        if (storeIds.length > 0) {
+                            pJson.storeId = await storeModel.findAll({
+                                where: { id: { [Op.in]: storeIds } }
+                            });
+                        } else {
+                            pJson.storeId = [];
+                        }
+                        return pJson;
+                    })
+                );
+                res.send({ status: 200, success: true, message: "All Data Found", data: populatedData });
             }
         })
         .catch((err) => {

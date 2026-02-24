@@ -9,6 +9,7 @@ import { useLocation } from "react-router-dom";
 export default function AllHoldExpense() {
   const [data, setData] = useState([]);
   const [load, setLoad] = useState(true);
+  const isViewer = sessionStorage.getItem("userType") === "11";
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [approvalHistory, setApprovalHistory] = useState([]);
@@ -26,6 +27,7 @@ export default function AllHoldExpense() {
     year: queryParams.get("year"),
     state: queryParams.get("state"),
     zone: queryParams.get("zone"),
+    currentApprovalLevel: queryParams.get("currentApprovalLevel"),
   };
   /* ================= FETCH HOLD ================= */
   const fetchHold = () => {
@@ -58,6 +60,10 @@ export default function AllHoldExpense() {
 
             if (appliedFilters.zone &&
               e.storeId?.zoneId !== appliedFilters.zone)
+              return false;
+
+            if (appliedFilters.currentApprovalLevel &&
+              e.currentApprovalLevel !== appliedFilters.currentApprovalLevel)
               return false;
 
             return true;
@@ -105,6 +111,7 @@ export default function AllHoldExpense() {
     TicketID: el.ticketId,
     Store: el.storeId?.storeName,
     ExpenseHead: el.expenseHeadId?.name,
+    Nature: el.natureOfExpense,
     Amount: el.amount,
     Status: "Hold",
     Comment: el.comment || "-",
@@ -191,11 +198,12 @@ export default function AllHoldExpense() {
                       <th>Ticket ID</th>
                       <th>Store</th>
                       <th>Expense Head</th>
+                      <th>Nature</th>
                       <th>Amount</th>
                       <th>Status</th>
                       <th>Hold Comment</th>
                       <th>Action Date</th>
-                      <th>Action</th>
+                      {!isViewer && <th>Action</th>}
                     </tr>
                   </thead>
 
@@ -220,11 +228,13 @@ export default function AllHoldExpense() {
                           </td>
 
                           <td>{el.ticketId}</td>
-
                           <td>{el.storeId?.storeName || "-"}</td>
-
                           <td>{el.expenseHeadId?.name || "-"}</td>
-
+                          <td>
+                            <span className={`badge ${el.natureOfExpense === 'CAPEX' ? 'bg-info' : 'bg-secondary'}`}>
+                              {el.natureOfExpense}
+                            </span>
+                          </td>
                           <td>₹ {el.amount}</td>
 
                           <td>
@@ -247,19 +257,21 @@ export default function AllHoldExpense() {
                               : "-"}
                           </td>
 
-                          <td>
-                            <button
-                              className="btn btn-sm btn-primary"
-                              onClick={() => handleViewClick(el)}
-                            >
-                              View
-                            </button>
-                          </td>
+                          {!isViewer && (
+                            <td>
+                              <button
+                                className="btn btn-sm btn-primary"
+                                onClick={() => handleViewClick(el)}
+                              >
+                                View
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={10} className="text-center text-muted">
+                        <td colSpan={!isViewer ? 10 : 9} className="text-center text-muted">
                           No Hold Expenses Found
                         </td>
                       </tr>
@@ -320,6 +332,15 @@ export default function AllHoldExpense() {
                       <div className="text-muted small">Amount</div>
                       <div className="fw-semibold text-success">
                         ₹ {selectedExpense.amount}
+                      </div>
+                    </div>
+
+                    <div className="col-md-6">
+                      <div className="text-muted small">Nature of Expense</div>
+                      <div className="fw-semibold">
+                        <span className={`badge ${selectedExpense.natureOfExpense === 'CAPEX' ? 'bg-info' : 'bg-secondary'}`}>
+                          {selectedExpense.natureOfExpense}
+                        </span>
                       </div>
                     </div>
 

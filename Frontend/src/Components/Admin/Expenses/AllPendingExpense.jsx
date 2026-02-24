@@ -10,6 +10,7 @@ import { useLocation } from "react-router-dom";
 export default function AdminPendingExpense() {
   const [data, setData] = useState([]);
   const [load, setLoad] = useState(true);
+  const isViewer = sessionStorage.getItem("userType") === "11";
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [approvalHistory, setApprovalHistory] = useState([]);
@@ -27,6 +28,7 @@ export default function AdminPendingExpense() {
     year: queryParams.get("year"),
     state: queryParams.get("state"),
     zone: queryParams.get("zone"),
+    currentApprovalLevel: queryParams.get("currentApprovalLevel"),
   };
   /* ================= FETCH PENDING ================= */
   const fetchPending = () => {
@@ -61,6 +63,10 @@ export default function AdminPendingExpense() {
               e.storeId?.zoneId !== appliedFilters.zone)
               return false;
 
+            if (appliedFilters.currentApprovalLevel &&
+              e.currentApprovalLevel !== appliedFilters.currentApprovalLevel)
+              return false;
+
             return true;
           });
 
@@ -85,10 +91,10 @@ export default function AdminPendingExpense() {
   useEffect(() => {
     fetchPending();
   }, []);
-/* ================= SORT (Latest First) ================= */
-const sortedData = [...data].sort(
-  (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-);
+  /* ================= SORT (Latest First) ================= */
+  const sortedData = [...data].sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+  );
   /* ================= SEARCH ================= */
   const filteredData = sortedData.filter((el) =>
     el.ticketId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -109,6 +115,7 @@ const sortedData = [...data].sort(
     TicketID: el.ticketId,
     Store: el.storeId?.storeName,
     ExpenseHead: el.expenseHeadId?.name,
+    Nature: el.natureOfExpense,
     Amount: el.amount,
     Status: "Pending",
   }));
@@ -190,9 +197,10 @@ const sortedData = [...data].sort(
                       <th>Ticket ID</th>
                       <th>Store</th>
                       <th>Expense Head</th>
+                      <th>Nature</th>
                       <th>Amount</th>
                       <th>Status</th>
-                      <th>Action</th>
+                      {!isViewer && <th>Action</th>}
                     </tr>
                   </thead>
 
@@ -217,25 +225,32 @@ const sortedData = [...data].sort(
                           <td>{el.ticketId}</td>
                           <td>{el.storeId?.storeName}</td>
                           <td>{el.expenseHeadId?.name}</td>
+                          <td>
+                            <span className={`badge ${el.natureOfExpense === 'CAPEX' ? 'bg-info' : 'bg-secondary'}`}>
+                              {el.natureOfExpense}
+                            </span>
+                          </td>
                           <td>₹ {el.amount}</td>
                           <td>
                             <span className="badge bg-warning">
                               Pending
                             </span>
                           </td>
-                          <td>
-                            <button
-                              className="btn btn-primary btn-sm"
-                              onClick={() => handleViewClick(el)}
-                            >
-                              View
-                            </button>
-                          </td>
+                          {!isViewer && (
+                            <td>
+                              <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => handleViewClick(el)}
+                              >
+                                View
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} className="text-center text-muted">
+                        <td colSpan={!isViewer ? 9 : 8} className="text-center text-muted">
                           No Pending Expenses Found
                         </td>
                       </tr>
@@ -328,6 +343,15 @@ const sortedData = [...data].sort(
                       <div className="text-muted small">Amount</div>
                       <div className="fw-semibold text-success">
                         ₹ {selectedExpense.amount}
+                      </div>
+                    </div>
+
+                    <div className="col-md-6">
+                      <div className="text-muted small">Nature of Expense</div>
+                      <div className="fw-semibold">
+                        <span className={`badge ${selectedExpense.natureOfExpense === 'CAPEX' ? 'bg-info' : 'bg-secondary'}`}>
+                          {selectedExpense.natureOfExpense}
+                        </span>
                       </div>
                     </div>
 

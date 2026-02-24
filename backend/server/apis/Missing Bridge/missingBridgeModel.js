@@ -27,8 +27,10 @@ const MissingBridge = sequelize.define('MissingBridge', {
         type: DataTypes.INTEGER,
         defaultValue: null
     },
-    // storeId was [{ type: ObjectId, ref: "storeData" }]
-    // implies Many-To-Many. Handled via associations.
+    storeId: {
+        type: DataTypes.JSON,
+        defaultValue: []
+    },
 
     zoneId: {
         type: DataTypes.INTEGER

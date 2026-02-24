@@ -9,6 +9,7 @@ import { CSVLink } from "react-csv";
 export default function ManageCity() {
   const [data, setData] = useState([]);
   const [load, setLoad] = useState(true);
+  const isViewer = sessionStorage.getItem("userType") === "11";
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalZone, setModalZone] = useState("");
@@ -38,9 +39,9 @@ export default function ManageCity() {
   /* ================= GROUP BY ZONE + STATE ================= */
   const groupedData = Object.values(
     activeCities.reduce((acc, city) => {
-      const zoneId = city?.zoneId?._id;
-      const zoneName = city?.zoneId?.zoneName;
-      const stateName = city?.stateId?.stateName;
+      const zoneId = city?.zoneData?._id;
+      const zoneName = city?.zoneData?.zoneName;
+      const stateName = city?.stateData?.stateName;
 
       if (!zoneId || !stateName) return acc;
 
@@ -55,7 +56,8 @@ export default function ManageCity() {
         };
       }
 
-      acc[key].cities.push(city.cityName);
+      const cityList = Array.isArray(city.cityName) ? city.cityName : [];
+      acc[key].cities.push(...cityList);
       return acc;
     }, {}),
   );
@@ -177,7 +179,7 @@ export default function ManageCity() {
                       <th>Zone</th>
                       <th>State</th>
                       <th>Cities</th>
-                      <th>Action</th>
+                      {!isViewer && <th>Action</th>}
                     </tr>
                   </thead>
 
@@ -194,40 +196,42 @@ export default function ManageCity() {
                             <span
                               style={{ color: "blue", cursor: "pointer" }}
                               onClick={() => {
-                                setModalZone(el?.zoneId?.zoneName);
-                                setModalState(el?.stateId?.stateName);
-                                setModalCities(el?.cityName || []);
+                                setModalZone(el?.zoneName);
+                                setModalState(el?.stateName);
+                                setModalCities(el?.cities || []);
                                 setModalOpen(true);
                               }}
                             >
-                              View Cities ({el?.cityName?.length || 0})
+                              View Cities ({el?.cities?.length || 0})
                             </span>
                           </td>
-                          <td>
-                            <div className="btn-group">
-                              <Link
-                                to={`/admin/editCity/${el._id}`}
-                                className="btn"
-                                style={{
-                                  background: "#197ce6ff",
-                                  color: "white",
-                                }}
-                              >
-                                <i className="bi bi-pen"></i>
-                              </Link>
+                          {!isViewer && (
+                            <td>
+                              <div className="btn-group">
+                                <Link
+                                  to={`/admin/editCity/${el._id}`}
+                                  className="btn"
+                                  style={{
+                                    background: "#197ce6ff",
+                                    color: "white",
+                                  }}
+                                >
+                                  <i className="bi bi-pen"></i>
+                                </Link>
 
-                              <button
-                                className="btn ms-2"
-                                style={{
-                                  background: "#6c757d",
-                                  color: "white",
-                                }}
-                                onClick={() => changeInactiveStatus(el._id)}
-                              >
-                                <i className="bi bi-x-circle"></i>
-                              </button>
-                            </div>
-                          </td>
+                                <button
+                                  className="btn ms-2"
+                                  style={{
+                                    background: "#6c757d",
+                                    color: "white",
+                                  }}
+                                  onClick={() => changeInactiveStatus(el._id)}
+                                >
+                                  <i className="bi bi-x-circle"></i>
+                                </button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       ))
                     ) : (
@@ -256,9 +260,8 @@ export default function ManageCity() {
                 {[...Array(totalPages)].map((_, i) => (
                   <button
                     key={i}
-                    className={`btn me-1 ${
-                      currentPage === i + 1 ? "btn-primary" : "btn-light"
-                    }`}
+                    className={`btn me-1 ${currentPage === i + 1 ? "btn-primary" : "btn-light"
+                      }`}
                     onClick={() => setCurrentPage(i + 1)}
                   >
                     {i + 1}

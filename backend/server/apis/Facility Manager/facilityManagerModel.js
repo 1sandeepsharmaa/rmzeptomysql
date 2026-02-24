@@ -27,8 +27,10 @@ const FacilityManager = sequelize.define('FacilityManager', {
         type: DataTypes.INTEGER,
         defaultValue: null
     },
-    // storeId was [{ type: ObjectId, ref: "storeData" }]
-    // implies Many-To-Many. Handled via associations.
+    storeId: {
+        type: DataTypes.JSON, // Stores array of Store IDs
+        defaultValue: []
+    },
 
     designation: {
         type: DataTypes.STRING,

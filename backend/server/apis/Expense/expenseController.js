@@ -217,8 +217,16 @@ const add = (req, res) => {
 };
 
 const getAll = (req, res) => {
+    // Whitelist allowed filter fields
+    const body = req.body || {};
+    const allowedFilters = {};
+    const whitelist = ["expenseHeadId", "natureOfExpense", "status", "storeId", "raisedBy", "expenseType"];
+    whitelist.forEach(field => {
+        if (body[field] !== undefined) allowedFilters[field] = body[field];
+    });
+
     expenseModel.findAll({
-        where: req.body,
+        where: allowedFilters,
         include: [
             { model: userModel, as: 'user', attributes: ['name', 'email'] },
             { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
@@ -226,9 +234,9 @@ const getAll = (req, res) => {
                 model: storeModel,
                 as: 'store',
                 include: [
-                    { model: stateModel, as: 'state', attributes: ['stateName'] },
-                    { model: zoneModel, as: 'zone', attributes: ['zoneName'] },
-                    { model: storeCategoryModel, as: 'storeCategory', attributes: ['name'] }
+                    { model: stateModel, as: 'stateData', attributes: ['stateName'] },
+                    { model: zoneModel, as: 'zoneData', attributes: ['zoneName'] },
+                    { model: storeCategoryModel, as: 'storeCategoryData', attributes: ['name'] }
                 ]
             }
         ],
@@ -279,9 +287,9 @@ const getSingle = (req, res) => {
                 model: storeModel,
                 as: 'store',
                 include: [
-                    { model: stateModel, as: 'state', attributes: ['stateName'] },
-                    { model: zoneModel, as: 'zone', attributes: ['zoneName'] },
-                    { model: storeCategoryModel, as: 'storeCategory', attributes: ['name'] }
+                    { model: stateModel, as: 'stateData', attributes: ['stateName'] },
+                    { model: zoneModel, as: 'zoneData', attributes: ['zoneName'] },
+                    { model: storeCategoryModel, as: 'storeCategoryData', attributes: ['name'] }
                 ]
             }
         ]
@@ -294,16 +302,14 @@ const getSingle = (req, res) => {
                     message: "Expense not Found"
                 });
             } else {
-                const json = data.toJSON();
+                // Sanitize associations if any user info included
+                const safeData = data.toJSON();
+                if (safeData.user) delete safeData.user.password;
+                if (safeData.raisedBy) delete safeData.raisedBy.password; // Assuming raisedBy might be an included user object
                 // Map association objects back to ID keys for frontend compatibility
-                json.storeId = json.store;
-                json.expenseHeadId = json.expenseHead;
-                res.send({
-                    status: 200,
-                    success: true,
-                    message: "Expense Found",
-                    data: json
-                });
+                safeData.storeId = safeData.store;
+                safeData.expenseHeadId = safeData.expenseHead;
+                res.send({ status: 200, success: true, message: "Expense Found", data: safeData });
             }
         })
         .catch((err) => {
@@ -377,9 +383,9 @@ const myExpenses = (req, res) => {
                 model: storeModel,
                 as: 'store',
                 include: [
-                    { model: stateModel, as: 'state', attributes: ['stateName'] },
-                    { model: zoneModel, as: 'zone', attributes: ['zoneName'] },
-                    { model: storeCategoryModel, as: 'storeCategory', attributes: ['name'] }
+                    { model: stateModel, as: 'stateData', attributes: ['stateName'] },
+                    { model: zoneModel, as: 'zoneData', attributes: ['zoneName'] },
+                    { model: storeCategoryModel, as: 'storeCategoryData', attributes: ['name'] }
                 ]
             }
         ],

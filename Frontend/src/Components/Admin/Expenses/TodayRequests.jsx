@@ -109,6 +109,9 @@ export default function TodayRequests() {
                 <tr>
                   <th>Sr No</th>
                   <th>Ticket ID</th>
+                  <th>Store</th>
+                  <th>Expense Head</th>
+                  <th>Nature</th>
                   <th>Date & Time</th>
                   <th>Amount</th>
                   <th>Status</th>
@@ -119,7 +122,7 @@ export default function TodayRequests() {
               <tbody>
                 {expenses.length === 0 && (
                   <tr>
-                    <td colSpan="6" className="text-center">
+                    <td colSpan="9" className="text-center">
                       No Requests Created Today
                     </td>
                   </tr>
@@ -129,19 +132,25 @@ export default function TodayRequests() {
                   <tr key={e._id}>
                     <td>{index + 1}</td>
                     <td>{e.ticketId || "-"}</td>
+                    <td>{e.storeId?.storeName || "-"}</td>
+                    <td>{e.expenseHeadId?.name || "-"}</td>
+                    <td>
+                      <span className={`badge ${e.natureOfExpense === 'CAPEX' ? 'bg-info' : 'bg-secondary'}`}>
+                        {e.natureOfExpense}
+                      </span>
+                    </td>
                     <td>{new Date(e.createdAt).toLocaleString()}</td>
                     <td>₹ {Number(e.amount || 0).toLocaleString()}</td>
                     <td>
                       <span
-                        className={`badge ${
-                          e.currentStatus === "Pending"
+                        className={`badge ${e.currentStatus === "Pending"
                             ? "bg-warning text-dark"
                             : e.currentStatus === "Approved"
-                            ? "bg-success"
-                            : e.currentStatus === "Hold"
-                            ? "bg-primary"
-                            : "bg-danger"
-                        }`}
+                              ? "bg-success"
+                              : e.currentStatus === "Hold"
+                                ? "bg-primary"
+                                : "bg-danger"
+                          }`}
                       >
                         {e.currentStatus}
                       </span>

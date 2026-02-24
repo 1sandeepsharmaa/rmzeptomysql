@@ -31,4 +31,10 @@ const State = sequelize.define('State', {
     toObject: { virtuals: true }
 });
 
+State.associate = (models) => {
+    State.belongsTo(models.Zone, { foreignKey: 'zoneId', as: 'zoneData' });
+    // Support for legacy alias
+    State.belongsTo(models.Zone, { foreignKey: 'zoneId', as: 'zone' });
+};
+
 module.exports = State;

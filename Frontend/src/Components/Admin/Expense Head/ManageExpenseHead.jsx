@@ -9,6 +9,7 @@ import { CSVLink } from "react-csv";
 export default function ManageExpenseHead() {
   const [data, setData] = useState([]);
   const [load, setLoad] = useState(true);
+  const isViewer = sessionStorage.getItem("userType") === "11";
 
   // Modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -128,7 +129,7 @@ export default function ManageExpenseHead() {
                     <th>Sr. No</th>
                     <th>Name</th>
                     <th>Description</th>
-                    <th>Action</th>
+                    {!isViewer && <th>Action</th>}
                   </tr>
                 </thead>
 
@@ -159,25 +160,27 @@ export default function ManageExpenseHead() {
                             </span>
                           )}
                         </td>
-                        <td>
-                          <div className="btn-group">
-                            <Link
-                              to={`/admin/editExpenseHead/${el._id}`}
-                              className="btn"
-                              style={{ background: "#197ce6ff", color: "white" }}
-                            >
-                              <i className="bi bi-pen"></i>
-                            </Link>
+                        {!isViewer && (
+                          <td>
+                            <div className="btn-group">
+                              <Link
+                                to={`/admin/editExpenseHead/${el._id}`}
+                                className="btn"
+                                style={{ background: "#197ce6ff", color: "white" }}
+                              >
+                                <i className="bi bi-pen"></i>
+                              </Link>
 
-                            <button
-                              className="btn ms-2"
-                              style={{ background: "#6c757d", color: "white" }}
-                              onClick={() => changeInactiveStatus(el._id)}
-                            >
-                              <i className="bi bi-x-circle"></i>
-                            </button>
-                          </div>
-                        </td>
+                              <button
+                                className="btn ms-2"
+                                style={{ background: "#6c757d", color: "white" }}
+                                onClick={() => changeInactiveStatus(el._id)}
+                              >
+                                <i className="bi bi-x-circle"></i>
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))
                   ) : (
@@ -207,9 +210,8 @@ export default function ManageExpenseHead() {
             {[...Array(totalPages)].map((_, i) => (
               <button
                 key={i}
-                className={`btn me-1 ${
-                  currentPage === i + 1 ? "btn-primary" : "btn-light"
-                }`}
+                className={`btn me-1 ${currentPage === i + 1 ? "btn-primary" : "btn-light"
+                  }`}
                 onClick={() => setCurrentPage(i + 1)}
               >
                 {i + 1}

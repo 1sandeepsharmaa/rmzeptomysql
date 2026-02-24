@@ -24,12 +24,11 @@ const Employee = sequelize.define('Employee', {
         unique: true
     },
     storeId: {
-        type: DataTypes.INTEGER
-        // This attempts to replicate the single ObjectId ref. 
-        // Association will be defined effectively as Employee.belongsTo(Store)
+        type: DataTypes.JSON,
+        defaultValue: []
     },
     userId: {
-        type: DataTypes.INTEGER, // Changed from String to Integer assuming User ID is now Integer
+        type: DataTypes.INTEGER,
         defaultValue: null
     },
     designation: {
@@ -52,5 +51,12 @@ const Employee = sequelize.define('Employee', {
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
 });
+
+Employee.associate = (models) => {
+    Employee.belongsTo(models.User, { foreignKey: 'userId', as: 'user' });
+    // Note: storeId is a JSON array, so a direct belongsTo won't work for joins,
+    // but the association might be used for other purposes.
+    Employee.belongsTo(models.Store, { foreignKey: 'storeId', as: 'store' });
+};
 
 module.exports = Employee;

@@ -18,7 +18,7 @@ const add = (req, res) => {
                 };
 
                 zoneModel.create(payload)
-                    .then((newData) => res.send({ status: 200, success: true, message: "Zone Added Successfully", data: newData }))
+                    .then((newData) => res.send({ status: 200, success: true, message: "Zone Added Successfully", data: newData.toJSON() }))
                     .catch((err) => {
                         console.error("Zone Add Error:", err);
                         res.send({ status: 422, success: false, message: "Zone Not Added" });
@@ -34,7 +34,12 @@ const add = (req, res) => {
 };
 
 const getAll = (req, res) => {
-    zoneModel.findAll({ where: req.body })
+    // Whitelist allowed filter fields
+    const body = req.body || {};
+    const allowedFilters = {};
+    if (body.status !== undefined) allowedFilters.status = body.status;
+
+    zoneModel.findAll({ where: allowedFilters })
         .then((data) => {
             if (data.length == 0) {
                 res.send({ status: 402, success: false, message: "Zone is Empty", data: data });
@@ -96,7 +101,7 @@ const update = (req, res) => {
                         } else {
                             if (req.body.zoneName) data.zoneName = req.body.zoneName;
                             data.save()
-                                .then((updated) => res.send({ status: 200, success: true, message: "Zone Updated Successfully", data: updated }))
+                                .then((updated) => res.send({ status: 200, success: true, message: "Zone Updated Successfully", data: updated.toJSON() }))
                                 .catch(() => res.send({ status: 422, success: false, message: "Zone not Updated" }));
                         }
                     })

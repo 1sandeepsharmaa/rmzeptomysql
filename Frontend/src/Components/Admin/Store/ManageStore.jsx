@@ -9,6 +9,7 @@ import { CSVLink } from "react-csv";
 export default function ManageStore() {
   const [data, setData] = useState([]);
   const [load, setLoad] = useState(true);
+  const isViewer = sessionStorage.getItem("userType") === "11";
 
   // Search
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,6 +23,7 @@ export default function ManageStore() {
     ApiServices.GetAllStore()
       .then((res) => {
         if (res?.data?.success) {
+          console.log("Store Fetched Data Sample:", res.data.data[0]);
           setData(res.data.data || []);
         } else {
           setData([]);
@@ -43,7 +45,7 @@ export default function ManageStore() {
     return (
       el?.storeName?.toLowerCase().includes(lower) ||
       el?.storeCode?.toLowerCase().includes(lower) ||
-      el?.cityId?.cityName?.toLowerCase().includes(lower)
+      el?.cityName?.toLowerCase().includes(lower)
     );
   });
 
@@ -61,10 +63,10 @@ export default function ManageStore() {
     srNo: idx + 1,
     storeName: el.storeName,
     storeCode: el.storeCode,
-    storeCategory: el?.storeCategoryId?.name,
-    city: el?.cityId?.cityName,
-    state: el?.stateId?.stateName,
-    zone: el?.zoneId?.zoneName,
+    storeCategory: el?.storeCategoryData?.name,
+    city: el?.cityName,
+    state: el?.stateData?.stateName,
+    zone: el?.zoneData?.zoneName,
     address: el.address,
     status: "Active",
   }));
@@ -154,7 +156,7 @@ export default function ManageStore() {
                   <th>State</th>
                   <th>Zone</th>
                   <th>Address</th>
-                  <th>Action</th>
+                  {!isViewer && <th>Action</th>}
                 </tr>
               </thead>
 
@@ -167,30 +169,32 @@ export default function ManageStore() {
                       </td>
                       <td>{el.storeName}</td>
                       <td>{el.storeCode}</td>
-                      <td>{el?.storeCategoryId?.name}</td>
-                      <td>{el?.cityId?.cityName}</td>
-                      <td>{el?.stateId?.stateName}</td>
-                      <td>{el?.zoneId?.zoneName}</td>
+                      <td>{el?.storeCategoryData?.name}</td>
+                      <td>{el?.cityName}</td>
+                      <td>{el?.stateData?.stateName}</td>
+                      <td>{el?.zoneData?.zoneName}</td>
                       <td>{el.address}</td>
-                      <td>
-                        <div className="btn-group">
-                          <Link
-                            to={"/admin/editStore/" + el._id}
-                            className="btn"
-                            style={{ background: "#197ce6ff", color: "white" }}
-                          >
-                            <i className="bi bi-pen"></i>
-                          </Link>
+                      {!isViewer && (
+                        <td>
+                          <div className="btn-group">
+                            <Link
+                              to={"/admin/editStore/" + el._id}
+                              className="btn"
+                              style={{ background: "#197ce6ff", color: "white" }}
+                            >
+                              <i className="bi bi-pen"></i>
+                            </Link>
 
-                          <button
-                            className="btn ms-2"
-                            style={{ background: "#6c757d", color: "white" }}
-                            onClick={() => changeInactiveStatus(el._id)}
-                          >
-                            <i className="bi bi-x-circle"></i>
-                          </button>
-                        </div>
-                      </td>
+                            <button
+                              className="btn ms-2"
+                              style={{ background: "#6c757d", color: "white" }}
+                              onClick={() => changeInactiveStatus(el._id)}
+                            >
+                              <i className="bi bi-x-circle"></i>
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))
                 ) : (
@@ -220,9 +224,8 @@ export default function ManageStore() {
           {[...Array(totalPages)].map((_, i) => (
             <button
               key={i}
-              className={`btn me-1 ${
-                currentPage === i + 1 ? "btn-primary" : "btn-light"
-              }`}
+              className={`btn me-1 ${currentPage === i + 1 ? "btn-primary" : "btn-light"
+                }`}
               onClick={() => setCurrentPage(i + 1)}
             >
               {i + 1}

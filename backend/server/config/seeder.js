@@ -28,4 +28,31 @@ const adminReg = (req, res) => {
         })
 }
 
-module.exports = { adminReg }
+const viewerReg = (req, res) => {
+    userModel.findOne({ where: { email: "viewer@gmail.com" } })
+        .then((userData) => {
+            if (userData == null) {
+                const viewerPayload = {
+                    name: "Viewer",
+                    email: "viewer@gmail.com",
+                    password: bcrypt.hashSync("viewer@123", 10),
+                    userType: 11
+                };
+                userModel.create(viewerPayload)
+                    .then(() => {
+                        console.log("Viewer Added Successfully");
+                    })
+                    .catch((err) => {
+                        console.log("Something Went Wrong", err);
+                    })
+            }
+            else {
+                console.log("Viewer Already Exists");
+            }
+        })
+        .catch((err) => {
+            console.log("Something Went Wrong", err);
+        })
+}
+
+module.exports = { adminReg, viewerReg }

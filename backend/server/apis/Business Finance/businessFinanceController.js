@@ -60,12 +60,14 @@ const add = (req, res) => {
 
                             bfModel.create(bfPayload)
                                 .then((bfData) => {
+                                    const safeBf = bfData.toJSON();
+                                    const { password: userPass, ...safeUser } = newUserData.toJSON();
                                     res.send({
                                         status: 200,
                                         success: true,
                                         message: "Business Finance Register Successfully",
-                                        employeeData: bfData,
-                                        userData: newUserData
+                                        employeeData: safeBf,
+                                        userData: safeUser
                                     })
                                 })
                                 .catch((err) => {
@@ -106,26 +108,45 @@ const add = (req, res) => {
 }
 
 const getAll = (req, res) => {
-    bfModel.findAll({ where: req.body })
-        // .populate replacement requires associations. 
-        // Assuming associations are not globally set, we might miss detailed user/store info here unless we define them or import them.
-        // For now, returning basic info.
-        .then((bfData) => {
-            if (bfData.length == 0) {
-                res.send({
-                    status: 422,
-                    success: false,
-                    message: "No Employee Data Found",
-                })
-            }
-            else {
-                res.send({
-                    status: 200,
-                    success: true,
-                    message: "All Employee Data Found",
-                    data: bfData
-                })
+    // Whitelist allowed filter fields
+    const body = req.body || {};
+    const allowedFilters = {};
+    if (body.storeId) allowedFilters.storeId = body.storeId;
+    if (body.status !== undefined) allowedFilters.status = body.status;
 
+    console.log("GetAllBf Filters:", allowedFilters);
+
+    bfModel.findAll({ where: allowedFilters })
+        .then(async (data) => {
+            if (data.length == 0) {
+                res.send({ status: 200, success: true, message: "No Manager Data Found", data: [] });
+            } else {
+                const storeModel = require("../Store/storeModel");
+                const populatedData = await Promise.all(
+                    data.map(async (bf) => {
+                        const bfJson = bf.toJSON();
+                        let storeIds = [];
+                        if (Array.isArray(bfJson.storeId)) {
+                            storeIds = bfJson.storeId;
+                        } else if (bfJson.storeId) {
+                            try {
+                                storeIds = typeof bfJson.storeId === 'string' ? JSON.parse(bfJson.storeId) : [bfJson.storeId];
+                            } catch (e) {
+                                storeIds = [bfJson.storeId];
+                            }
+                        }
+
+                        if (storeIds.length > 0) {
+                            bfJson.storeId = await storeModel.findAll({
+                                where: { id: { [Op.in]: storeIds } }
+                            });
+                        } else {
+                            bfJson.storeId = [];
+                        }
+                        return bfJson;
+                    })
+                );
+                res.send({ status: 200, success: true, message: "All Manager Data Found", data: populatedData });
             }
         })
         .catch((err) => {
@@ -134,9 +155,9 @@ const getAll = (req, res) => {
                 status: 422,
                 success: false,
                 message: "Something Went Wrong",
-            })
-        })
-}
+            });
+        });
+};
 
 const getSingle = (req, res) => {
     var errMsgs = []
@@ -166,7 +187,7 @@ const getSingle = (req, res) => {
                         status: 200,
                         success: true,
                         message: "Business Finance Data Found",
-                        data: bfData
+                        data: bfData.toJSON()
                     })
                 }
             })
@@ -246,7 +267,7 @@ const updateBf = (req, res) => {
                                                     status: 200,
                                                     success: true,
                                                     message: "Updated Successfully",
-                                                    data: updatedData
+                                                    data: updatedData.toJSON()
                                                 });
                                             })
                                             .catch(() => {

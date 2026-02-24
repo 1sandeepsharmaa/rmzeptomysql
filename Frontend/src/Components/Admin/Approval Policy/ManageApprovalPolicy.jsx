@@ -9,6 +9,7 @@ import { CSVLink } from "react-csv";
 export default function ManageApprovalPolicy() {
   const [policies, setPolicies] = useState([]);
   const [load, setLoad] = useState(true);
+  const isViewer = sessionStorage.getItem("userType") === "11";
   const [searchTerm, setSearchTerm] = useState("");
 
   // Pagination
@@ -149,7 +150,7 @@ export default function ManageApprovalPolicy() {
                   <th>Max Amount</th>
                   <th>Approval Levels</th>
                   <th>Status</th>
-                  <th>Action</th>
+                  {!isViewer && <th>Action</th>}
                 </tr>
               </thead>
 
@@ -164,25 +165,27 @@ export default function ManageApprovalPolicy() {
                       <td>{el.maxAmount}</td>
                       <td>{el.approvalLevels?.join(" → ")}</td>
                       <td>Active</td>
-                      <td>
-                        <div className="btn-group">
-                          <Link
-                            to={"/admin/editApprovalPolicy/" + el._id}
-                            className="btn"
-                            style={{ background: "#197ce6", color: "white" }}
-                          >
-                            <i className="bi bi-pen"></i>
-                          </Link>
+                      {!isViewer && (
+                        <td>
+                          <div className="btn-group">
+                            <Link
+                              to={"/admin/editApprovalPolicy/" + el._id}
+                              className="btn"
+                              style={{ background: "#197ce6", color: "white" }}
+                            >
+                              <i className="bi bi-pen"></i>
+                            </Link>
 
-                          <button
-                            className="btn ms-2"
-                            style={{ background: "#6c757d", color: "white" }}
-                            onClick={() => changeInactiveStatus(el._id)}
-                          >
-                            <i className="bi bi-x-circle"></i>
-                          </button>
-                        </div>
-                      </td>
+                            <button
+                              className="btn ms-2"
+                              style={{ background: "#6c757d", color: "white" }}
+                              onClick={() => changeInactiveStatus(el._id)}
+                            >
+                              <i className="bi bi-x-circle"></i>
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))
                 ) : (

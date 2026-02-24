@@ -20,7 +20,7 @@ const add = (req, res) => {
                 };
 
                 storeCategoryModel.create(payload)
-                    .then((newData) => res.send({ status: 200, success: true, message: "Store Category Added Successfully", data: newData }))
+                    .then((newData) => res.send({ status: 200, success: true, message: "Store Category Added Successfully", data: newData.toJSON() }))
                     .catch((err) => {
                         console.error("StoreCategory Add Error:", err);
                         res.send({ status: 422, success: false, message: "Store Category Not Added" });
@@ -36,7 +36,12 @@ const add = (req, res) => {
 };
 
 const getAll = (req, res) => {
-    storeCategoryModel.findAll({ where: req.body })
+    // Whitelist allowed filter fields
+    const body = req.body || {};
+    const allowedFilters = {};
+    if (body.status !== undefined) allowedFilters.status = body.status;
+
+    storeCategoryModel.findAll({ where: allowedFilters })
         .then((data) => {
             if (data.length == 0) {
                 res.send({ status: 402, success: false, message: "Store Category is Empty" });
@@ -99,7 +104,7 @@ const update = (req, res) => {
                             if (req.body.name) data.name = req.body.name;
                             if (req.body.description) data.description = req.body.description;
                             data.save()
-                                .then((updated) => res.send({ status: 200, success: true, message: "Store Category Updated Successfully", data: updated }))
+                                .then((updated) => res.send({ status: 200, success: true, message: "Store Category Updated Successfully", data: updated.toJSON() }))
                                 .catch(() => res.send({ status: 422, success: false, message: "Store Category not Updated" }));
                         }
                     })

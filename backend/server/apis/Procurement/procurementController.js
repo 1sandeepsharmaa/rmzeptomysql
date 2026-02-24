@@ -49,12 +49,14 @@ const add = (req, res) => {
 
                         procureModel.create(procurePayload)
                             .then((procureData) => {
+                                const safeProcure = procureData.toJSON();
+                                const { password: userPass, ...safeUser } = newUserData.toJSON();
                                 res.send({
                                     status: 200,
                                     success: true,
                                     message: "Procurement Register Successfully",
-                                    employeeData: procureData,
-                                    userData: newUserData
+                                    employeeData: safeProcure,
+                                    userData: safeUser
                                 });
                             })
                             .catch((err) => {
@@ -77,12 +79,46 @@ const add = (req, res) => {
 };
 
 const getAll = (req, res) => {
-    procureModel.findAll({ where: req.body })
-        .then((data) => {
+    // Whitelist allowed filter fields
+    const body = req.body || {};
+    const allowedFilters = {};
+    if (body.storeId) allowedFilters.storeId = body.storeId;
+    if (body.email) allowedFilters.email = body.email;
+    if (body.status !== undefined) allowedFilters.status = body.status;
+
+    console.log("GetAllProcurement Filters:", allowedFilters);
+
+    procureModel.findAll({ where: allowedFilters })
+        .then(async (data) => {
             if (data.length == 0) {
-                res.send({ status: 422, success: false, message: "No procure Data Found" });
+                res.send({ status: 200, success: true, message: "No Data Found", data: [] });
             } else {
-                res.send({ status: 200, success: true, message: "All procure Data Found", data: data });
+                const storeModel = require("../Store/storeModel");
+                const populatedData = await Promise.all(
+                    data.map(async (p) => {
+                        const pJson = p.toJSON();
+                        let storeIds = [];
+                        if (Array.isArray(pJson.storeId)) {
+                            storeIds = pJson.storeId;
+                        } else if (pJson.storeId) {
+                            try {
+                                storeIds = typeof pJson.storeId === 'string' ? JSON.parse(pJson.storeId) : [pJson.storeId];
+                            } catch (e) {
+                                storeIds = [pJson.storeId];
+                            }
+                        }
+
+                        if (storeIds.length > 0) {
+                            pJson.storeId = await storeModel.findAll({
+                                where: { id: { [Op.in]: storeIds } }
+                            });
+                        } else {
+                            pJson.storeId = [];
+                        }
+                        return pJson;
+                    })
+                );
+                res.send({ status: 200, success: true, message: "All Data Found", data: populatedData });
             }
         })
         .catch((err) => {
@@ -105,7 +141,7 @@ const getSingle = (req, res) => {
             if (data == null) {
                 res.send({ status: 422, success: false, message: "Business Finance not Found" }); // Keeping legacy message context
             } else {
-                res.send({ status: 200, success: true, message: "Business Finance Data Found", data: data });
+                res.send({ status: 200, success: true, message: "Procurement Data Found", data: data.toJSON() });
             }
         })
         .catch((err) => {
@@ -142,7 +178,7 @@ const updatePr = (req, res) => {
                                     if (req.body.storeId) userData.storeId = req.body.storeId;
                                     userData.save();
                                 }
-                                res.send({ status: 200, success: true, message: "Updated Successfully", data: updatedData });
+                                res.send({ status: 200, success: true, message: "Updated Successfully", data: updatedData.toJSON() });
                             })
                             .catch(() => res.send({ status: 422, success: false, message: "User fetch error" }));
                     })

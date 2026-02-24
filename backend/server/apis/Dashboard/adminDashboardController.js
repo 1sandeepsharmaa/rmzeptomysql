@@ -31,7 +31,7 @@ const getDashboard = async (req, res) => {
 
       expenseModel.count({ where: { currentStatus: "Approved" } }),
 
-      expenseModel.count({ where: { currentStatus: "Declined" } }),
+      expenseModel.count({ where: { currentStatus: "Rejected" } }),
 
       expenseModel.count({ where: { currentStatus: "Hold" } }),
 
@@ -59,9 +59,15 @@ const getDashboard = async (req, res) => {
       totalProcurement,
       totalPrPo,
       totalZonalCommercial,
-      totalMissingBridgeUsers
+      totalMissingBridgeUsers,
+      closedRequests
     ] = await Promise.all([
-      userModel.count({ where: { status: true } }),
+      userModel.count({
+        where: {
+          status: true,
+          designation: { [Op.ne]: null, [Op.notIn]: ['', 'Admin', 'Viewer'] }
+        }
+      }),
 
       userModel.count({ where: { designation: "FM", status: true } }),
       userModel.count({ where: { designation: "CLM", status: true } }),
@@ -71,7 +77,8 @@ const getDashboard = async (req, res) => {
       userModel.count({ where: { designation: "Procurement", status: true } }),
       userModel.count({ where: { designation: "PR/PO", status: true } }),
       userModel.count({ where: { designation: "Zonal_Commercial", status: true } }),
-      userModel.count({ where: { designation: "Missing_Bridge", status: true } })
+      userModel.count({ where: { designation: "Missing_Bridge", status: true } }),
+      expenseModel.count({ where: { currentStatus: "Closed" } })
     ]);
 
     res.status(200).send({
@@ -85,6 +92,7 @@ const getDashboard = async (req, res) => {
         inProcessRequests,
         todayRequests,
         missingBridgeRequests,
+        closedRequests,
 
         totalUsers,
         totalFacilityManagers,

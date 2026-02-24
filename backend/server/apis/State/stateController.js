@@ -29,7 +29,7 @@ const add = (req, res) => {
                             status: 200,
                             success: true,
                             message: "State Added Successfully",
-                            data: data
+                            data: data.toJSON()
                         });
                     })
                     .catch((err) => {
@@ -47,10 +47,20 @@ const add = (req, res) => {
 };
 
 const getAll = (req, res) => {
-    stateModel.findAll({ where: req.body })
+    // Whitelist allowed filter fields
+    const body = req.body || {};
+    const allowedFilters = {};
+    if (body.zoneId) allowedFilters.zoneId = body.zoneId;
+    if (body.status !== undefined) allowedFilters.status = body.status;
+
+    stateModel.findAll({
+        where: allowedFilters,
+        include: [{ model: require("../Zone/zoneModel"), as: 'zoneData' }]
+    })
         .then((data) => {
+            console.log("State GetAll Data Sample:", data[0]?.toJSON?.());
             if (data.length == 0) {
-                res.send({ status: 402, success: false, message: "State is Empty" });
+                res.send({ status: 200, success: true, message: "State is Empty", data: [] }); // Changed status to 200 for consistency if successful
             } else {
                 res.send({ status: 200, success: true, message: "State Found", data: data });
             }
@@ -103,7 +113,7 @@ const update = (req, res) => {
                 stateData.stateName = req.body.stateName;
                 stateData.zoneId = req.body.zoneId;
                 stateData.save()
-                    .then((updated) => res.send({ status: 200, success: true, message: "State Updated Successfully", data: updated }))
+                    .then((updated) => res.send({ status: 200, success: true, message: "State Updated Successfully", data: updated.toJSON() }))
                     .catch(() => res.send({ status: 422, success: false, message: "State not Updated" }));
             }
         })

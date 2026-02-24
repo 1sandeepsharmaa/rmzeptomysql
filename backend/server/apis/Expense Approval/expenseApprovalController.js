@@ -10,6 +10,9 @@ const zoneModel = require("../Zone/zoneModel");
 const storeCategoryModel = require("../Store Category/storeCategoryModel");
 const { Op } = require("sequelize");
 
+/* ================= ASSOCIATIONS ================= */
+// Associations are now handled centrally in model files
+
 /* ================= APPROVE EXPENSE ================= */
 const approveExpense = async (req, res) => {
     try {
@@ -413,7 +416,7 @@ const approvalHistory = async (req, res) => {
 
         const data = await expenseApprovalModel.findAll({
             where: { expenseId },
-            // include: [{ model: userModel, as: 'approver' }],
+            include: [{ model: userModel, as: 'approver', attributes: ['id', 'name', 'email', 'designation'] }],
             order: [['actionAt', 'ASC']]
         });
 
@@ -455,7 +458,7 @@ const clmPendingExpenses = async (req, res) => {
                 status: true
             },
             include: [
-                { model: userModel, as: 'user', attributes: ['name', 'email'] },
+                { model: userModel, as: 'user', attributes: { exclude: ['password'] } },
                 { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
                 {
                     model: storeModel,
@@ -525,7 +528,7 @@ const pendingForZH = async (req, res) => {
                 status: true
             },
             include: [
-                { model: userModel, as: 'user', attributes: ['name', 'email'] },
+                { model: userModel, as: 'user', attributes: { exclude: ['password'] } },
                 { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
                 {
                     model: storeModel,
@@ -548,7 +551,7 @@ const pendingForZH = async (req, res) => {
             if (json.raisedBy) {
                 const raiser = await userModel.findOne({
                     where: { id: json.raisedBy },
-                    attributes: ['id', 'name', 'email', 'designation']
+                    attributes: { exclude: ['password'] }
                 });
                 json.raisedBy = raiser ? raiser.toJSON() : json.raisedBy;
             }
@@ -592,7 +595,7 @@ const pendingForBF = async (req, res) => {
         const expenses = await expenseModel.findAll({
             where,
             include: [
-                { model: userModel, as: 'user', attributes: ['name', 'email'] },
+                { model: userModel, as: 'user', attributes: { exclude: ['password'] } },
                 { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
                 {
                     model: storeModel,
@@ -656,7 +659,7 @@ const pendingForProcurement = async (req, res) => {
         const expenses = await expenseModel.findAll({
             where,
             include: [
-                { model: userModel, as: 'user', attributes: ['name', 'email'] },
+                { model: userModel, as: 'user', attributes: { exclude: ['password'] } },
                 { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
                 {
                     model: storeModel,
@@ -707,7 +710,7 @@ const prpoPendingExpenses = async (req, res) => {
                 currentStatus: "Pending",
             },
             include: [
-                { model: userModel, as: 'user', attributes: ['name', 'email'] },
+                { model: userModel, as: 'user', attributes: { exclude: ['password'] } },
                 { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
                 {
                     model: storeModel,
@@ -878,38 +881,34 @@ const myApprovalActions = async (req, res) => {
 const adminExpensesByStatus = async (req, res) => {
     try {
         const { status } = req.body;
-        if (!status) {
-            return res.send({ success: false, message: "Status is required" });
-        }
+        if (!status) return res.send({ success: false, message: "status is required" });
 
         const expenses = await expenseModel.findAll({
             where: { currentStatus: status },
             include: [
-                { model: userModel, as: 'user', attributes: ['name', 'email'] },
-                { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
                 {
                     model: storeModel,
                     as: 'store',
                     include: [
                         { model: stateModel, as: 'state', attributes: ['stateName'] },
-                        { model: zoneModel, as: 'zone', attributes: ['zoneName'] },
-                        { model: storeCategoryModel, as: 'storeCategory', attributes: ['name'] }
+                        { model: zoneModel, as: 'zone', attributes: ['zoneName'] }
                     ]
-                }
+                },
+                { model: expenseHeadModel, as: 'expenseHead', attributes: ['name'] },
+                { model: userModel, as: 'user', attributes: ['id', 'name', 'email', 'designation'] }
             ],
             order: [['createdAt', 'DESC']]
         });
 
-        const populated = expenses.map(e => {
-            const json = e.toJSON();
-            json.storeId = json.store;
-            json.expenseHeadId = json.expenseHead;
-            return json;
-        });
-
-        // Add additional data if Rejected or Closed (Sequelize version)
         const updatedExpenses = await Promise.all(
-            populated.map(async (expJson) => {
+            expenses.map(async (exp) => {
+                const expJson = exp.toJSON();
+
+                // Standardize keys for frontend compatibility
+                expJson.storeId = expJson.store;
+                expJson.expenseHeadId = expJson.expenseHead;
+                expJson.raisedBy = expJson.user; // 'user' is the alias for raisedBy association
+
                 if (status === "Rejected") {
                     const lastReject = await expenseApprovalModel.findOne({
                         where: { expenseId: expJson.id, action: "Rejected" },
@@ -918,7 +917,6 @@ const adminExpensesByStatus = async (req, res) => {
                     if (lastReject) {
                         expJson.rejectionComment = lastReject.comment;
                         expJson.rejectedOn = lastReject.actionAt;
-                        // For simplicity, omitted user name fetch here.
                     }
                 }
                 if (status === "Closed") {

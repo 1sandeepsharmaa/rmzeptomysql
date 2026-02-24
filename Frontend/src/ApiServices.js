@@ -452,6 +452,9 @@ class ApiServices {
    Login(data) {
       return axios.post(BaseURL + "/apis/user/login", data)
    }
+   GoogleLogin(data) {
+      return axios.post(BaseURL + "/apis/google-login", data)
+   }
    GetAllUser(data) {
       return axios.post(BaseURL + "/apis/user/all", data, { headers: getToken() })
    }

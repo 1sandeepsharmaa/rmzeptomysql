@@ -57,12 +57,14 @@ const add = (req, res) => {
 
                         fmModel.create(fmPayload)
                             .then((fmData) => {
+                                const safeFm = fmData.toJSON();
+                                const { password: userPass, ...safeUser } = newUserData.toJSON();
                                 res.send({
                                     status: 200,
                                     success: true,
                                     message: "FM Register Successfully",
-                                    employeeData: fmData,
-                                    userData: newUserData
+                                    employeeData: safeFm,
+                                    userData: safeUser
                                 });
                             })
                             .catch((err) => {
@@ -101,21 +103,48 @@ const add = (req, res) => {
 };
 
 const getAll = (req, res) => {
-    fmModel.findAll({ where: req.body })
-        .then((fmData) => {
+    // Whitelist allowed filter fields
+    const body = req.body || {};
+    const allowedFilters = {};
+    if (body.storeId) allowedFilters.storeId = body.storeId;
+    if (body.email) allowedFilters.email = body.email;
+    if (body.status !== undefined) allowedFilters.status = body.status;
+
+    console.log("GetAllFm Filters:", allowedFilters);
+
+    fmModel.findAll({ where: allowedFilters })
+        .then(async (fmData) => {
             if (fmData.length == 0) {
-                res.send({
-                    status: 422,
-                    success: false,
-                    message: "No FM Data Found",
-                });
+                res.send({ status: 200, success: true, message: "No FM Data Found", data: [] });
             } else {
-                res.send({
-                    status: 200,
-                    success: true,
-                    message: "All FM Data Found",
-                    data: fmData
-                });
+                const storeModel = require("../Store/storeModel");
+                // Manual population of stores
+                const populatedData = await Promise.all(
+                    fmData.map(async (fm) => {
+                        const fmJson = fm.toJSON();
+                        let storeIds = [];
+                        if (Array.isArray(fmJson.storeId)) {
+                            storeIds = fmJson.storeId;
+                        } else if (fmJson.storeId) {
+                            try {
+                                storeIds = typeof fmJson.storeId === 'string' ? JSON.parse(fmJson.storeId) : [fmJson.storeId];
+                            } catch (e) {
+                                storeIds = [fmJson.storeId];
+                            }
+                        }
+
+                        if (storeIds.length > 0) {
+                            fmJson.storeId = await storeModel.findAll({
+                                where: { id: { [Op.in]: storeIds } }
+                            });
+                        } else {
+                            fmJson.storeId = [];
+                        }
+                        return fmJson;
+                    })
+                );
+                console.log("Store GetAll Data Sample:", populatedData[0]);
+                res.send({ status: 200, success: true, message: "All FM Data Found", data: populatedData });
             }
         })
         .catch((err) => {
@@ -154,7 +183,7 @@ const getSingle = (req, res) => {
                     status: 200,
                     success: true,
                     message: "Facility Manager Data Found", // Fixed message
-                    data: fmData
+                    data: fmData.toJSON()
                 });
             }
         })
@@ -216,7 +245,7 @@ const updateFm = (req, res) => {
                                                 status: 200,
                                                 success: true,
                                                 message: "Updated Successfully",
-                                                data: updatedData
+                                                data: updatedData.toJSON()
                                             });
                                         })
                                         .catch(() => {

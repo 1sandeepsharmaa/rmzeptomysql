@@ -9,6 +9,7 @@ import { CSVLink } from "react-csv";
 export default function ManageStoreCategory() {
   const [data, setData] = useState([]);
   const [load, setLoad] = useState(true);
+  const isViewer = sessionStorage.getItem("userType") === "11";
   const [searchTerm, setSearchTerm] = useState(""); // Search
   const [currentPage, setCurrentPage] = useState(1); // Pagination
   const itemsPerPage = 20;
@@ -148,7 +149,7 @@ export default function ManageStoreCategory() {
                   <th>Name</th>
                   <th>Description</th>
                   <th>Status</th>
-                  <th>Action</th>
+                  {!isViewer && <th>Action</th>}
                 </tr>
               </thead>
 
@@ -162,25 +163,27 @@ export default function ManageStoreCategory() {
                       <td>
                         <span className="badge bg-success">Active</span>
                       </td>
-                      <td>
-                        <div className="btn-group">
-                          <Link
-                            to={"/admin/editStoreCategory/" + el?._id}
-                            className="btn"
-                            style={{ background: "#197ce6ff", color: "white" }}
-                          >
-                            <i className="bi bi-pen"></i>
-                          </Link>
+                      {!isViewer && (
+                        <td>
+                          <div className="btn-group">
+                            <Link
+                              to={"/admin/editStoreCategory/" + el?._id}
+                              className="btn"
+                              style={{ background: "#197ce6ff", color: "white" }}
+                            >
+                              <i className="bi bi-pen"></i>
+                            </Link>
 
-                          <button
-                            className="btn ms-2"
-                            style={{ background: "#6c757d", color: "white" }}
-                            onClick={() => changeInactiveStatus(el?._id)}
-                          >
-                            <i className="bi bi-x-circle"></i>
-                          </button>
-                        </div>
-                      </td>
+                            <button
+                              className="btn ms-2"
+                              style={{ background: "#6c757d", color: "white" }}
+                              onClick={() => changeInactiveStatus(el?._id)}
+                            >
+                              <i className="bi bi-x-circle"></i>
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))
                 ) : (

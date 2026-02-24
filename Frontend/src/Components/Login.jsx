@@ -3,6 +3,7 @@ import ApiServices from "../ApiServices";
 import { useNavigate } from "react-router-dom";
 import { ScaleLoader } from "react-spinners";
 import Swal from "sweetalert2";
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function Login() {
     const [email, setEmail] = useState("");
@@ -40,7 +41,7 @@ export default function Login() {
                     sessionStorage.setItem("userType", res?.data?.data?.userType);
 
                     setTimeout(() => {
-                        nav("/redirect");  
+                        nav("/redirect");
                     }, 1000);
                 } else {
                     Swal.fire({
@@ -61,6 +62,63 @@ export default function Login() {
                 console.error("Error:", err);
             });
     }
+
+    const handleGoogleSuccess = (credentialResponse) => {
+        const data = {
+            idToken: credentialResponse.credential
+        };
+
+        ApiServices.GoogleLogin(data)
+            .then((res) => {
+                if (res.data.success) {
+                    const name = res?.data?.data?.name;
+                    Swal.fire({
+                        title: "Login Successfully !!",
+                        text: "Welcome back " + name + " !!",
+                        icon: "success",
+                        confirmButtonColor: "#6776f4",
+                        timer: 2000,
+                        timerProgressBar: true,
+                    });
+                    setLoad(true);
+                    sessionStorage.setItem("token", res?.data?.token);
+                    sessionStorage.setItem("userId", res?.data?.data?.id);
+                    localStorage.setItem("userId", res?.data?.data?.id);
+                    sessionStorage.setItem("name", res?.data?.data?.name);
+                    sessionStorage.setItem("email", res?.data?.data?.email);
+                    sessionStorage.setItem("userType", res?.data?.data?.userType);
+
+                    setTimeout(() => {
+                        nav("/redirect");
+                    }, 1000);
+                } else {
+                    Swal.fire({
+                        title: "Login Failed",
+                        text: res.data.message || "Unauthorized access!",
+                        icon: "error",
+                        confirmButtonText: "Try Again",
+                    });
+                }
+            })
+            .catch((err) => {
+                Swal.fire({
+                    title: "Something Went Wrong !!",
+                    text: "Google SSO failed. Please try again.",
+                    icon: "error",
+                    confirmButtonText: "Try Again",
+                });
+                console.error("Google Login Error:", err);
+            });
+    };
+
+    const handleGoogleError = () => {
+        Swal.fire({
+            title: "Google Login Failed",
+            text: "Could not authenticate with Google.",
+            icon: "error",
+            confirmButtonText: "Close",
+        });
+    };
 
     return (
         <>
@@ -156,6 +214,18 @@ export default function Login() {
                                         >
                                             Sign In
                                         </button>
+                                    </div>
+
+                                    <div className="text-center mt-3 d-flex justify-content-center">
+                                        <GoogleLogin
+                                            onSuccess={handleGoogleSuccess}
+                                            onError={handleGoogleError}
+                                            useOneTap
+                                            theme="outline"
+                                            size="large"
+                                            text="signin_with"
+                                            shape="pill"
+                                        />
                                     </div>
 
                                     <div className="text-center mt-4" >

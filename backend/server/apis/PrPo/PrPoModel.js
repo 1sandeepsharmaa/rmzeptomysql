@@ -27,6 +27,10 @@ const PrPo = sequelize.define('PrPo', {
         type: DataTypes.INTEGER,
         defaultValue: null
     },
+    storeId: {
+        type: DataTypes.JSON,
+        defaultValue: []
+    },
     // storeId was [{ type: ObjectId, ref: "storeData" }]
     // implies Many-To-Many or Array. Handled via associations later.
 

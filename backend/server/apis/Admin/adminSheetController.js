@@ -10,14 +10,7 @@ const ExpenseApproval = require("../Expense Approval/expenseApprovalModel");
 const { Parser } = require("json2csv");
 const { Op } = require("sequelize");
 
-// Define Associations locally for deep includes
-Expense.belongsTo(User, { foreignKey: 'raisedBy', as: 'user' });
-Expense.belongsTo(ExpenseHead, { foreignKey: 'expenseHeadId', as: 'expenseHead' });
-Expense.belongsTo(Store, { foreignKey: 'storeId', as: 'store' });
-Expense.hasMany(ExpenseApproval, { foreignKey: 'expenseId', as: 'approvals' });
-Store.belongsTo(State, { foreignKey: 'stateId', as: 'state' });
-Store.belongsTo(Zone, { foreignKey: 'zoneId', as: 'zone' });
-Store.belongsTo(StoreCategory, { foreignKey: 'storeCategoryId', as: 'storeCategory' });
+// Associations are now handled in models and centralized in db.js
 
 const exportExpenseCSV = async (req, res) => {
   console.log("EXPORT CSV HIT");
